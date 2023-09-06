@@ -14,6 +14,8 @@ interface MultiFormProps {
 
 interface MultiFormState {
   formData: Record<string, Record<number, Record<string, { data: string; validity: boolean }>>>;
+  invalidFields: string[]; // Add the invalidFields property here
+
 }
 
 class MultiForm extends Component<MultiFormProps, MultiFormState> {
@@ -21,6 +23,7 @@ class MultiForm extends Component<MultiFormProps, MultiFormState> {
     super(props);
     this.state = {
       formData: this.initializeFormData(),
+      invalidFields: [],
     };
   }
 
@@ -108,56 +111,117 @@ class MultiForm extends Component<MultiFormProps, MultiFormState> {
   };
 
   handleSubmit = () => {
-    console.log(this.state.formData);
-  };
-
-  render() {
-    const { formTypeConfigurations, className } = this.props;
     const { formData } = this.state;
+    let allFieldsValid = true; // Flag to check if all fields are valid
+  
+    // Check the validity of all fields and collect invalid field keys
+    const invalidFieldKeys = [];
+  
+    for (const formType in formData) {
+      for (const formIndex in formData[formType]) {
+        for (const fieldAlias in formData[formType][formIndex]) {
+          const inputField = formData[formType][formIndex][fieldAlias];
+          if (!inputField.validity) {
+            // Field is invalid
+            allFieldsValid = false;
+            invalidFieldKeys.push(`${formType}-${formIndex}-${fieldAlias}`);
+          }
+        }
+      }
+    }
+  
+    if (!allFieldsValid) {
+      // If any field is invalid, set invalidFields state to trigger re-render
+      this.setState({ invalidFields: invalidFieldKeys });
+      console.log(invalidFieldKeys);
+      // Remove the blinking class after 1 second (adjust as needed)
+      setTimeout(() => {
+        this.setState({ invalidFields: [] });
+      }, 1000);
+    }
+  
+    if (allFieldsValid) {
+      // All fields are valid, log data without "validity"
+      const dataWithoutValidity = {};
+  
+      for (const formType in formData) {
+        dataWithoutValidity[formType] = {};
+        for (const formIndex in formData[formType]) {
+          dataWithoutValidity[formType][formIndex] = {};
+          for (const fieldAlias in formData[formType][formIndex]) {
+            dataWithoutValidity[formType][formIndex][fieldAlias] =
+              formData[formType][formIndex][fieldAlias].data;
+          }
+        }
+      }
+  
+      console.log(dataWithoutValidity);
+    }
+  };
+  
+  
 
-    return (
-      <div className={className}>
-        {Object.keys(formTypeConfigurations).map((formType) => (
-          <div key={formType} className={`${formType}-container`}>
-            {Object.keys(formData[formType]).map((formIndex, serial) => (
-              <div key={formIndex} className="form-entry">
-                <p className="form-title">{formType + ' ' + (serial + 1)}</p>
-                {Object.keys(formTypeConfigurations[formType].fields).map((fieldAlias) => (
-                  <div key={fieldAlias} className="form-field">
+render() {
+  const { formTypeConfigurations, className } = this.props;
+  const { formData, invalidFields } = this.state;
+
+  return (
+    <div className={className}>
+      {Object.keys(formTypeConfigurations).map((formType) => (
+        <div key={formType} className={`${formType}-container`}>
+          {Object.keys(formData[formType]).map((formIndex, serial) => (
+            <div key={formIndex} className={`form-entry`}>
+              <p className="form-title">{formType + ' ' + (serial + 1)}</p>
+              {Object.keys(formTypeConfigurations[formType].fields).map((fieldAlias) => {
+                const inputField = formData[formType][formIndex][fieldAlias];
+                const isInvalid = !inputField.validity;
+                const fieldKey = `${formType}-${formIndex}-${fieldAlias}`;
+
+                // Add a conditional class based on invalidFields state
+                const inputClassName = `input-field ${isInvalid ? 'invalid' : ''} ${
+                  invalidFields.includes(fieldKey) ? 'invalid-blink' : ''
+                }`;
+
+                return (
+                  <div key={fieldAlias} className={`form-field ${isInvalid ? 'invalid' : ''}`}>
                     <label className="field-label">{fieldAlias}</label>
                     <input
                       type={formTypeConfigurations[formType].fields[fieldAlias].type}
-                      value={formData[formType][formIndex][fieldAlias].data}
+                      value={inputField.data}
                       onChange={(event) =>
                         this.handleInputChange(formType, parseInt(formIndex), fieldAlias, event)
                       }
+                      className={inputClassName}
+                      data-field-key={fieldKey}
                     />
                   </div>
-                ))}
-                {serial >= formTypeConfigurations[formType].startAmount && (
-                  <button
-                    className="delete-button"
-                    onClick={() => this.handleDeleteForm(formType, parseInt(formIndex))}
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            ))}
-            {Object.keys(formData[formType]).length < formTypeConfigurations[formType].maxAmount && (
-              <button className="add-button" onClick={() => this.handleAddForm(formType)}>
-                Add {formType}
-              </button>
-            )}
-          </div>
-        ))}
-        <button className="submit-button" onClick={this.handleSubmit}>
-          Submit
-        </button>
-      </div>
-    );
-  }
+                );
+              })}
+              {serial >= formTypeConfigurations[formType].startAmount && (
+                <button
+                  className="delete-button"
+                  onClick={() => this.handleDeleteForm(formType, parseInt(formIndex))}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+          {Object.keys(formData[formType]).length < formTypeConfigurations[formType].maxAmount && (
+            <button className="add-button" onClick={() => this.handleAddForm(formType)}>
+              Add {formType}
+            </button>
+          )}
+        </div>
+      ))}
+      <button className="submit-button" onClick={this.handleSubmit}>
+        Submit
+      </button>
+    </div>
+  );
 }
+
+}  
 
 export default MultiForm;
 export type { FormTypeConfig };

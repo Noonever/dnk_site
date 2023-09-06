@@ -67,6 +67,17 @@
     border-radius: 3px;
   }
   
+    /* Apply a red border to invalid input fields */
+    .form-field.invalid input[type="text"],
+    .form-field.invalid input[type="number"],
+    .form-field.invalid input[type="email"],
+    .form-field.invalid input[type="tel"] {
+    border-color: #ff6b6b;
+    color: #ff4646;
+    /* You can customize the border styles further, such as border-width, border-style, etc. */
+    }
+
+
   /* Add button for new forms */
   .add-button {
     background-color: #63c363;
@@ -94,5 +105,25 @@
   
   .submit-button:hover {
     background-color: #0056b3;
+  }
+
+/* Apply a blinking effect to invalid input fields */
+.invalid-blink {
+    animation: invalid-blink-animation 0.5s ease infinite;
+  }
+  
+  @keyframes invalid-blink-animation {
+    0% {
+      opacity: 1;
+      border-color: red;
+    }
+    50% {
+      opacity: 0.2;
+      border-color: rgb(0, 0, 0);
+    }
+    100% {
+      opacity: 1;
+      border-color: #ff6b6b;
+    }
   }
   
