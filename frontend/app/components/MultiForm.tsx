@@ -21,6 +21,7 @@ interface MultiFormProps {
 	formTypeConfigurations: Record<string, FormTypeConfig>;
 	className?: string;
 	onSubmitCallback?: (formData: Record<string, Record<number, Record<string, string>>>) => void;
+	title?: string;
 }
 
 interface MultiFormState {
@@ -190,6 +191,9 @@ class MultiForm extends Component<MultiFormProps, MultiFormState> {
 
 		return (
 			<div className="multi-form-container">
+				<center>
+				<p className='multi-form-title'>{this.props.title}</p>
+				</center>
 				{Object.keys(formTypeConfigurations).map((formType) => (
 					<div key={formType} className={`block-container`}>
 						{Object.keys(formData[formType]).map((formIndex, serial) => (

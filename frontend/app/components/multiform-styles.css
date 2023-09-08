@@ -1,11 +1,11 @@
 /* Container for the entire MultiForm component */
 .multi-form-container {
-  width: 100%;
+  width: 1200px;
   max-width: 600px;
   /* Adjust the maximum width as needed */
   margin: 0 auto;
   padding: 20px;
-  border: 1px solid #ccc;
+  border: 2px solid #ccc;
   border-radius: 5px;
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -67,6 +67,7 @@ input[type="tel"] {
   margin-bottom: 10px;
   border: 1px solid #ccc;
   border-radius: 3px;
+  transition-duration: 300ms all;
 }
 
 /* Apply a red border to invalid input fields */
@@ -137,4 +138,10 @@ input[type="tel"] {
   font-size: 12px;
   margin-top: 0px;
   margin-bottom: 4px;
+}
+
+.multi-form-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+
 }
