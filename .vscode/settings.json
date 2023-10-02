@@ -4,6 +4,12 @@
     },
     "python.formatting.provider": "none",
     "cSpell.words": [
-        "passlib"
+        "downgap",
+        "ogrn",
+        "ogrnip",
+        "passlib",
+        "Кобяков",
+        "ОГРН",
+        "ОГРНИП"
     ]
 }

@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import type { LinksFunction, LoaderArgs } from "@remix-run/node";
 
 import {
@@ -13,90 +13,102 @@ import {
     useLoaderData,
 } from "@remix-run/react";
 
-import styles from "./styles.css";
-
+import styles from "./root.css";
 import { getUser } from "~/utils/session.server";
-import Navbar from "./components/Navbar";
 
-export function links() {
-    return [{ rel: "stylesheet", href: styles }];
+export const links: LinksFunction = () => {
+    return [{ rel: "stylesheet", href: styles }, { rel: "stylesheet", href: "https://fonts.cdnfonts.com/css/montserrat" }];
 }
 
 export async function loader({ request }: LoaderArgs) {
+    const user = await getUser(request);
+    if (!user && !request.url.includes("/login")) {
+        return redirect("/login");
+    }
+
+    if (user !== null) {
+        if (user.isAdmin && !request.url.includes("admin")) {
+            return redirect("/admin");
+        }
+        if (!user.isAdmin && !request.url.includes("request")) {
+            return redirect("/request");
+        }
+    }
+
     return json({
-        user: await getUser(request),
+        user: user, currentPath: request.url,
     });
 }
 
-const adminNavbar: NavbarProps = {
-    links: {
-        "Отправить заявку на релиз": "/forms/release",
-        "Заявки на релизы": "/releases",
-        "Пользователи": "/users",
-    }
-}
-
-const defaultNavbar: NavbarProps = {
-    links: {
-        "Отправить заявку на релиз": "/forms/release",
-        "Релизы": "/releases",
-    }
-}
-
 export default function App() {
-    const data = useLoaderData();
+
+    const data = useLoaderData<typeof loader>();
+    const currentPath = data.currentPath;
     const user = data.user;
-    let isAdmin = false
-    let isVerified = false
-    if (user) {
-        isAdmin = user.isAdmin
-        isVerified = user.isVerified
-    }
+    const isAdmin = user?.isAdmin;
 
-    console.log('from root', isAdmin, isVerified);
-
-    let navbarLinks = {}
-
-    if (isAdmin) {
-        navbarLinks = adminNavbar.links
-    } else if (user) {
-        navbarLinks = defaultNavbar.links
-    } else {
-        navbarLinks = {}
-    }
-
+    console.log(currentPath)
     return (
         <html lang="en">
             <head>
+                <meta charSet="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <Meta />
                 <Links />
             </head>
-            <body>
-                <header className="header">
-                    <div className="header-left">
-                        <p className="header-text">DNK</p>
-                    </div>
-                    <div className="header-center">
-                        <Navbar links={navbarLinks} />
-                    </div>
-                    <div className="header-right">
-                        <div className="user-block">
-                            <nav className='navbar'>
-                                <NavLink to="/me">
-                                    <p className='navbar-text'>Личный кабинет</p>
-                                </NavLink>
-                            </nav>
-                            {user ? (
-                                <Form method="post" action="/logout">
-                                    <button type='submit'>Выйти</button>
-                                </Form>
-                            ) : <></>}
+            <body className={isAdmin ? "admin" : ""}>
+                {currentPath.includes('/login') ? <></> : (
 
+                    <header id="header">
+                        {isAdmin ? (
+                            <>
+                                <div id="header-left">
+                                    <NavLink className={"link admin"} to="/admin/request">ОТПРАВИТЬ ЗАЯВКУ НА РЕЛИЗ</NavLink>
+                                    <NavLink className={"link admin"} to="/admin/requests">ЗАЯВКИ НА ОТГРУЗКУ</NavLink>
+                                    <NavLink className={"link admin"} to="/admin/users">ПОЛЬЗОВАТЕЛИ</NavLink>
+                                </div>
+                                <div id="header-right">
+                                    <div style={{ display: "flex", alignItems: "center" }}>
+                                        <span className='user-name admin'>Панель администратора</span>
+                                    </div>
+                                    <Form method="post" action="/logout">
+                                        <button className='logout admin' type='submit'>ВЫЙТИ</button>
+                                    </Form>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div id="header-left">
+                                    <NavLink className={"link"} to="/me">ПРОФИЛЬ АРТИСТА</NavLink>
+                                    <NavLink className={"link"} to="/request">ЗАЯВКА НА ОТГРУЗКУ</NavLink>
+                                    <NavLink className={"link"} to="/my-releases">МОИ РЕЛИЗЫ</NavLink>
+                                </div>
+                                <div id="header-right">
+                                    {user ? (
+                                        <>
+                                            <div id="user-name-container">
+                                                <span className="user-name">{user.username}</span>
+                                            </div>
+                                            <Form method="post" action="/logout">
+                                                <button className='logout' type='submit'>ВЫЙТИ</button>
+                                            </Form>
+                                        </>
+                                    ) : <></>}
+                                </div>
+                            </>
+                        )}
+
+                    </header>
+                )}
+                {
+                    currentPath.includes('/login') ? (
+                        <Outlet />
+                    ) : (
+                        <div className='page'>
+                            <Outlet />
                         </div>
-                    </div>
-                </header>
-
-                <Outlet />
+                    )
+                }
                 <ScrollRestoration />
                 <Scripts />
                 <LiveReload />

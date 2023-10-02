@@ -4,9 +4,14 @@ import { json, redirect } from "@remix-run/node";
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 
 import { createUserSession, getUserId } from "~/utils/session.server";
-import { verifyLogin } from "~/backend/axios";
+import { verifyLogin } from "~/backend/user";
 
-import type { User } from "~/types/user";
+import styles from '~/styles/login.css'
+import logo from '~/static/img/dnk_logo.png'
+
+export const links = () => {
+    return [{ rel: "stylesheet", href: styles }];
+}
 
 export async function loader({ request }: LoaderArgs) {
     const userId = await getUserId(request);
@@ -19,62 +24,62 @@ export async function action({ request }: ActionArgs) {
     const email = formData.get("username");
     const password = formData.get("password");
 
-    const user: User = await verifyLogin(email, password);
-
+    const user = await verifyLogin(String(email), String(password));
+    if (!user) return null;
+    // TODO: unsuccessful login
     // If no user is returned, return the error
-
+    
     return createUserSession({
         request,
         userId: user.id,
     });
 }
 
-
-export default function LoginPage() {
+export default function login() {
     return (
-        <div className="page">
-            <div className="component-container"></div>
-            <Form method="post">
-                <div className="multi-form-container">
+        <div id="login-container">
+            <div id="row-container">
+                <div id='form-container'>
                     <center>
-                        <p className='multi-form-title'>Вход</p>
-                    </center>
-                    <div className={`form-field`}>
-                        <div className='field-container'>
-                            <div className='field-label-container'>
-                                <label htmlFor="email" className="field-label">Email</label>
-                            </div>
-                            <div className='field-input-container'>
+                        <div id='form-title-container'>
+                            <span id='form-title'>войти в аккаунт</span>
+                        </div>
+                        <Form method="post">
+                            <div id='login-form'>
                                 <input
+                                    id="username-input"
+                                    name="username"
                                     className="input-field"
-                                    id="email"
-                                    required
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className={`form-field`}>
-                        <div className='field-container'>
-                            <div className='field-label-container'>
-                                <label htmlFor="password" className="field-label">Password</label>
-                            </div>
-                            <div className='field-input-container'>
+                                    type="text"
+                                    placeholder="логин"
+
+                                >
+                                </input>
                                 <input
-                                    id="password"
-                                    required
+                                    id="password-input"
                                     name="password"
+                                    className="input-field"
                                     type="password"
-                                    autoComplete="current-password"
-                                />
+                                    placeholder="пароль"
+                                >
+                                </input>
+                                <button id="enter-button" type="submit">войти</button>
                             </div>
-                        </div>
-                    </div>
-                    <button type="submit">Log in</button>
+                        </Form>
+                    </center>
                 </div>
-            </Form>
+                <div id='logo-container'>
+                    <img id='logo' src={logo} alt="logo" />
+                    <div id='logo-text-container'>
+                        <span id='logo-text'>
+                            КАБИНЕТ
+                        </span>
+                        <span id='logo-text'>
+                            АРТИСТА
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

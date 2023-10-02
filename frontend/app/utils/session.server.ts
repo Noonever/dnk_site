@@ -2,7 +2,7 @@ import { createCookieSessionStorage, redirect } from "@remix-run/node";
 
 import type { User } from "~/types/user"
 
-import { getUserById } from "~/backend/axios";
+import { getUserById } from "~/backend/user";
 
 const USER_SESSION_KEY = "userId";
 
@@ -31,7 +31,8 @@ export async function createUserSession({
 }) {
     const session = await getSession(request);
     session.set(USER_SESSION_KEY, userId);
-    return redirect("/", {
+    const user = await getUserById(userId);
+    return redirect(user?.isAdmin? "/admin/requests" : "/request", {
         headers: {
             "Set-Cookie": await sessionStorage.commitSession(session, {
                 maxAge: 60 * 60 * 24 * 7 // 7 days,

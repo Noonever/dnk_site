@@ -1,24 +1,9 @@
 from fastapi import APIRouter, Response
 
-from ..schemas import AlbumReleaseIn
+from ..schemas import ReleaseUploadRequest
 
-releases = []
+release_router = APIRouter(prefix='/release', tags=['release'])
 
-release_router = APIRouter(prefix='/release')
-
-@release_router.post('/')
-async def upload_album(album: AlbumReleaseIn):
-    album = album.model_dump()
-    for track in album["tracks"]:
-        del track['file']
-    album["id"] = len(releases)
-    releases.append(album)
-    return Response(status_code=200)
-
-@release_router.delete('/')
-async def delete_release():
-    pass
-
-@release_router.get('/')
-async def get_releases(userId: str):
-    return releases
+@release_router.post('/upload-request')
+async def upload(query: ReleaseUploadRequest):
+    print(query.model_dump())

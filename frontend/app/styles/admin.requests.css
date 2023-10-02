@@ -1,0 +1,96 @@
+.my-releases {
+    display: flex;
+    flex-direction: column;
+}
+
+.release-container {
+    width: 80vw;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 4vh;
+}
+
+.row-field {
+    flex: 1;
+}
+
+input {
+    background-color: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: rgb(0, 0, 0);
+    font-family: Montserrat;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+label.input {
+    color: rgb(0, 0, 0);
+    font-family: Montserrat;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+label.downgap {
+    margin-bottom: 2vh;
+}
+
+label.shifted {
+    margin-left: 2vw;
+    padding-bottom: 1vh;
+}
+
+input.field {
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgb(0, 0, 0);
+}
+
+
+input.release {
+    width: calc(100% - 5px - 2vw);
+    height: 4.4vh;
+    padding-left: 2vw;
+    margin-top: 1vh;
+}
+
+input#left {
+    border-top-left-radius: 30px;
+    border-bottom-left-radius: 30px;
+}
+
+input#right {
+    border-top-right-radius: 30px;
+    border-bottom-right-radius: 30px;
+}
+
+a.full-cover {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    /* Make the input field background transparent */
+    border: none;
+    /* Remove borders if not needed */
+    z-index: 1000;
+    /* Ensure the input is above other elements */
+    opacity: 0;
+}
+
+.info-text {
+    color: #000000;
+    font-family: Montserrat;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 10px;
+    /* 50% */
+}

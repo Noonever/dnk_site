@@ -1,2 +1,2 @@
-from .release import *
+from .release import ReleaseUploadRequest
 from .user import UserIn, UserOut

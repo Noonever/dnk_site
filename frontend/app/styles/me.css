@@ -1,0 +1,115 @@
+.user-profile {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.profile-section {
+    padding: 2vw;
+    width: 41.2vw;
+    height: 100%;
+    border-radius: 30px;
+    background-color: rgba(255, 255, 255, 0.15);
+    margin: 1.5vw;
+}
+
+.bubble {
+    background-color: rgba(255, 255, 255, 0.24);
+    border-radius: 30px;
+    height: 42px;
+    width: 100%;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    color: #FFF;
+    font-family: Montserrat;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 10px;
+    /* 55.556% */
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+
+}
+
+svg.icon{
+    padding: 0.1vw;
+    border-radius: 0.5vw;
+    background-color: rgba(255, 255, 255, 0.594);
+    cursor: pointer;
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+input {
+    background-color: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: rgb(255, 255, 255);
+    font-family: Montserrat;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+label.input {
+    color: rgb(255, 255, 255);
+    font-family: Montserrat;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+label.downgap {
+    margin-bottom: 2vh;
+}
+
+label.shifted {
+    margin-left: 2vw;
+    padding-bottom: 1vh;
+}
+
+input.field {
+    background-color: rgba(255, 255, 255, 0);
+    border: 1px solid white;
+    height: 3.17vh;
+    border-radius: 30px;
+    padding-left: 2vw;
+}
+
+input[type='date'] {
+    padding-right: 75%;
+}
+
+.responsive-selector-field {
+    cursor: pointer;
+    margin-bottom: 2.73vh;
+}
+
+.responsive-selector {
+    color: rgba(255, 255, 255, 0.40);
+    font-family: Montserrat;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 20px;
+}
+
+.responsive-selector.active {
+    color: rgb(255, 255, 255);
+}
+
+input.full-cover {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent; /* Make the input field background transparent */
+    border: none; /* Remove borders if not needed */
+    z-index: 1000; /* Ensure the input is above other elements */
+    opacity: 0;
+}
