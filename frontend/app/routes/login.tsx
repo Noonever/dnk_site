@@ -24,16 +24,11 @@ export async function action({ request }: ActionArgs) {
     const email = formData.get("username");
     const password = formData.get("password");
 
-    console.log("VERFIGY LOGIN")
     const user = await verifyLogin(String(email), String(password));
     if (!user) {
         return Error("Invalid login");
-    }
-    console.log("END VERFIGY LOGIN")
 
-    console.log(user)
-    // TODO: unsuccessful login
-    // If no user is returned, return the error
+    }
     
     return createUserSession({
         request,

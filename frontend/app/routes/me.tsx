@@ -13,6 +13,7 @@ const fullNameRePattern = /^([А-ЯЁ][а-яё]+) ([А-ЯЁ][а-яё]+) 
 const sixDigitsRePattern = /^\d{6}$/
 const tenDigitsRePattern = /^\d{10}$/
 const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
+const kzPassportIdRePattern = /^d{12}$/
 const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
 const innRePattern = /^\d{12}$/
 const bankAccountRePattern = /^\d{20}$/
@@ -21,6 +22,7 @@ const ogrnipRePattern = /^\d{15}$/
 const ogrnRePattern = /^\d{13}$/
 const innOOORePattern = /^\d{10}$/
 const kppRePattern = /^\d{9}$/
+
 
 //@ts-ignore
 export const meta: MetaFunction = () => {
@@ -128,7 +130,7 @@ export default function UserProfile() {
         } else if (fieldName === 'number') {
             isValid = kzPassportNumberRePattern.test(value) || value === ''
         } else if (fieldName === 'idNumber') {
-            isValid = /^d{12}&/.test(value) || value === ''
+            isValid = /^d{12}$/.test(value) || value === ''
         }
 
         if (!isValid) {
