@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  backend:
+    build:
+      context: ./backend  # Replace with the path to your backend directory
+      dockerfile: Dockerfile
+    container_name: fastapi-uvicorn
+    ports:
+      - "80:8000"
+    depends_on:
+      - frontend
+
+  frontend:
+    build:
+      context: ./frontend  # Replace with the path to your frontend directory
+      dockerfile: Dockerfile
+    container_name: remix-react
+    ports:
+      - "3000:3000"
