@@ -1,10 +1,28 @@
 import { useState } from "react";
-import type { ActionFunctionArgs, LinksFunction, MetaFunction } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import type { LinksFunction, MetaFunction, LoaderArgs } from "@remix-run/node";
+
+import { uploadFile } from "~/backend/file";
+import { uploadClipReleaseRequest } from "~/backend/release";
+import type { ClipReleaseUpload } from "~/types/release";
+import type { AuthorForm, AuthorDocs, Author } from "~/types/author";
+import type { ByPassportData, ForeignPassportData, KzPassportData, RuPassportData } from "~/types/user_data";
+
+import { requireUserName } from "~/utils/session.server";
 
 import styles from "~/styles/request.single.css";
-import { useSubmit } from "@remix-run/react";
-import { uploadClipRequest } from "~/backend/release";
+import passportStyles from "~/styles/me.css";
+import ReleaseGenreOptions from "~/components/release-genres";
 
+import { fullNamesRePattern, linkRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
+
+const fullNameRePattern = fullNamesRePattern
+const sixDigitsRePattern = /^\d{6}$/
+const tenDigitsRePattern = /^\d{10}$/
+const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
+const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+
+//@ts-ignore
 export const meta: MetaFunction = () => {
     return [
         { title: "DNK | Заявка | Видеоклип" },
@@ -13,18 +31,16 @@ export const meta: MetaFunction = () => {
 };
 
 export const links: LinksFunction = () => {
-    return [{ rel: "stylesheet", href: styles }];
+    return [{rel: "stylesheet", href: passportStyles}, { rel: "stylesheet", href: styles }];
 };
 
-export async function action({ request }: ActionFunctionArgs) {
-    const formData = await request.formData()
-    let data = Object.fromEntries(formData);
-    await uploadClipRequest(data)
-    return new Response('OK', { status: 200 });
+export async function loader({ request }: LoaderArgs): Promise<string> {
+    const userId = await requireUserName(request);
+    return userId;
 }
 
 export default function SingleReleaseRequest() {
-    const submit = useSubmit();
+    const userId = useLoaderData<typeof loader>();
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
@@ -35,15 +51,15 @@ export default function SingleReleaseRequest() {
 
     const defaultClip: {
         performersNames: string,
-        musicAuthors: string,
-        lyricists: string,
-        phonogramProducers: string,
+        musicAuthorsNames: string,
+        lyricistsNames: string,
+        phonogramProducersNames: string,
         directorsNames: string,
     } = {
         performersNames: "",
-        musicAuthors: "",
-        lyricists: "",
-        phonogramProducers: "",
+        musicAuthorsNames: "",
+        lyricistsNames: "",
+        phonogramProducersNames: "",
         directorsNames: "",
     }
 
@@ -54,10 +70,29 @@ export default function SingleReleaseRequest() {
     const [userAgreed, setUserAgreed] = useState(false)
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
+    const [modalIsOpened, setModalIsOpened] = useState(false);
 
-    const fullNamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const multipleNicknamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const linkRePattern = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/
+    const [authorIsSolo, setAuthorIsSolo] = useState(true);
+    const [fullNameToAdd, setFullNameToAdd] = useState('');
+    const [fullNameToAddValidity, setFullNameToAddValidity] = useState(true);
+    const [authors, setAuthors] = useState<AuthorForm[]>([]);
+    const [editableAuthorIndex, setEditableAuthorIndex] = useState<number | null>(null);
+
+    const [authorDocsForm, setAuthorDocsForm] = useState<AuthorDocs>({
+        licenseOrAlienation: false,
+        paymentType: 'royalty',
+        paymentValue: '0',
+        passportType: 'ru',
+        passport: {
+            fullName: "",
+            birthDate: "",
+            number: "",
+            issuedBy: "",
+            issueDate: "",
+            code: "",
+            registrationDate: "",
+        }
+    })
 
     // release fields
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,7 +194,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-musicAuthors`)
         }
 
-        newTrackForms[trackId].musicAuthors = musicAuthors;
+        newTrackForms[trackId].musicAuthorsNames = musicAuthors;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -178,7 +213,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-lyricists`)
         }
 
-        newTrackForms[trackId].lyricists = lyricists;
+        newTrackForms[trackId].lyricistsNames = lyricists;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -196,7 +231,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-phonogramProducers`)
         }
 
-        newTrackForms[trackId].phonogramProducers = phonogramProducers;
+        newTrackForms[trackId].phonogramProducersNames = phonogramProducers;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -220,26 +255,16 @@ export default function SingleReleaseRequest() {
         setClipForms(newTrackForms);
     }
 
-    function fileToByteArray(file: File): Promise<Uint8Array> {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                if (event.target?.result instanceof ArrayBuffer) {
-                    const arrayBuffer = event.target.result;
-                    const byteArray = new Uint8Array(arrayBuffer);
-                    resolve(byteArray);
-                } else {
-                    reject(new Error('Failed to read file as ArrayBuffer.'));
-                }
-            };
-
-            reader.onerror = (event) => {
-                reject(new Error('Failed to read file: ' + event.target?.error));
-            };
-
-            reader.readAsArrayBuffer(file);
-        });
+    const flushForm = () => {
+        setReleaseTitle("")
+        setReleasePerformers("")
+        setReleaseVersion("")
+        setReleaseGenre("")
+        setReleaseLink("")
+        setClipForms([defaultClip])
+        setReleaseCoverFile(undefined)
+        flushPassportInvalidKeys()
+        setAuthors([])
     }
 
     const err_notificate = () => {
@@ -252,8 +277,6 @@ export default function SingleReleaseRequest() {
             alert("Некоторые поля заполнены некорректно")
             return
         }
-
-        const formData = new FormData()
 
         if (releasePerformers === "") {
             err_notificate()
@@ -268,45 +291,778 @@ export default function SingleReleaseRequest() {
             return
         }
 
-        const coverFileBytes = String(await fileToByteArray(releaseCoverFile))
+        const authorsToSend: Author[] = []
 
-        formData.append(`releasePerformers`, releasePerformers)
-        formData.append(`releaseTitle`, releaseTitle)
-        formData.append(`releaseVersion`, releaseVersion)
-        formData.append(`releaseGenre`, releaseGenre)
-        formData.append(`releaseCoverFile`, coverFileBytes)
+        if (authorIsSolo !== true) {
+            for (let author of authors) {
 
-        for (let track of clipForms) {
+                let authorToSend: Author | null = null
 
-            if (track.performersNames === "") {
-                err_notificate()
-                break
+                if (author.docs !== null && author.file === null) {
+                    authorToSend = {
+                        fullName: author.fullName,
+                        data: author.docs,
+                    }
+                } else if (author.docs === null && author.file !== null) {
+                    const authorFileId = await uploadFile(author.file)
+                    authorToSend = {
+                        fullName: author.fullName,
+                        data: authorFileId,
+                    }
+                } else {
+                    alert('Заполните документы добавленных авторов')
+                    console.log(authors)
+                    return
+                }
+
+                authorsToSend.push(authorToSend)
             }
-            if (track.musicAuthors === "") {
-                err_notificate()
-                break
-            }
-            if (track.phonogramProducers === "") {
-                err_notificate()
-                break
-            }
-
-            formData.append(`${clipForms.indexOf(track)}-track-performersNames`, track.performersNames)
-            formData.append(`${clipForms.indexOf(track)}-track-musicAuthors`, track.musicAuthors)
-            formData.append(`${clipForms.indexOf(track)}-track-lyricists`, track.lyricists)
-            formData.append(`${clipForms.indexOf(track)}-track-phonogramProducers`, track.phonogramProducers)
         }
+        
+        const clip = clipForms[0]
+
+        const coverFileId = await uploadFile(releaseCoverFile)
+
+        const clipRelease: ClipReleaseUpload = {
+            title: releaseTitle,
+            performers: releasePerformers,
+            version: releaseVersion,
+            genre: releaseGenre,
+            releaseLink: releaseLink,
+            performersNames: clip.performersNames,
+            musicAuthorsNames: clip.musicAuthorsNames,
+            lyricistsNames: clip.lyricistsNames,
+            phonogramProducersNames: clip.phonogramProducersNames,
+            directorsNames: clip.directorsNames,
+            coverFileId: coverFileId
+        }
+
         try {
-            submit(formData, { method: 'post', action: '/request/video-clip' });
+            setModalIsOpened(true)
+            const response = await uploadClipReleaseRequest(
+                userId, 
+                clipRelease, 
+                authorsToSend
+            )
+            if (response === 200) {
+                setModalIsOpened(false)
+                flushForm()
+            }
         } catch (error) {
             // Handle network errors
             console.error('Network error:', error);
         }
     }
-    console.log('invalidFieldKeys', invalidFieldKeys)
+
+    const flushPassportInvalidKeys = () => {
+        let newInvalidFieldKeys = new Set(invalidFieldKeys);
+        newInvalidFieldKeys.forEach((item) => {
+            if (item.includes('passport-')) {
+                newInvalidFieldKeys.delete(item);
+            }
+        });
+        setInvalidFieldKeys(newInvalidFieldKeys);
+    }
+
+    const handleDeleteAuthor = (index: number) => {
+        const newAuthorsState = [...authors]
+        newAuthorsState.splice(index, 1)
+        setAuthors(newAuthorsState)
+    }
+
+    const handleAddAuthor = () => {
+        if (!fullNameToAddValidity || fullNameToAdd === "") {
+            return
+        }
+        const newAuthorsState = [...authors]
+        newAuthorsState.push({
+            fullName: fullNameToAdd,
+            docs: null,
+            file: null
+        })
+        setAuthors(newAuthorsState)
+        setFullNameToAdd('')
+        setFullNameToAddValidity(true)
+    }
+
+    const handleChangeCurrentPassport = (fieldName: keyof RuPassportData | keyof KzPassportData | keyof ByPassportData | keyof ForeignPassportData, value: string) => {
+        const currentPassport = authorDocsForm.passport
+        const passportType = authorDocsForm.passportType
+
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+
+        let newPassport = { ...currentPassport }
+
+        if (passportType === 'ru') {
+            let isValid = true
+            const newRuPassport = { ...currentPassport } as RuPassportData
+            const ruFieldName = fieldName as keyof RuPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = tenDigitsRePattern.test(value) || value === ''
+                console.log('value', value, 'pattern', tenDigitsRePattern, isValid)
+            } else if (fieldName === 'code') {
+                isValid = sixDigitsRePattern.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+            newRuPassport[ruFieldName] = value
+            newPassport = newRuPassport
+
+        } else if (passportType === 'kz') {
+            let isValid = true
+            const newKzPassport = { ...currentPassport } as KzPassportData
+            const kzFieldName = fieldName as keyof KzPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = kzPassportNumberRePattern.test(value) || value === ''
+            } else if (fieldName === 'idNumber') {
+                isValid = /^d{12}&/.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+
+            newKzPassport[kzFieldName] = value
+            newPassport = newKzPassport
+
+        } else if (passportType === 'by') {
+            let isValid = true
+            const newByPassport = { ...currentPassport } as ByPassportData
+            const byFieldName = fieldName as keyof ByPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = byPassportNumberRePattern.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+
+            newByPassport[byFieldName] = value
+            newPassport = newByPassport
+
+        } else if (passportType === 'foreign') {
+            const newForeignPassport = { ...currentPassport } as ForeignPassportData
+            const foreignFieldName = fieldName as keyof ForeignPassportData
+
+            newForeignPassport[foreignFieldName] = value
+            newPassport = newForeignPassport
+        }
+        setAuthorDocsForm({ ...authorDocsForm, passport: newPassport })
+        setInvalidFieldKeys(newInvalidFieldKeys)
+        console.log(invalidFieldKeys)
+    }
+
+    const handleChangeCurrentPassportType = (value: 'ru' | 'kz' | 'by' | 'foreign') => {
+        let newPassport: RuPassportData | KzPassportData | ByPassportData | ForeignPassportData | undefined = undefined
+
+        const fullName = authors[editableAuthorIndex!].fullName
+
+        if (value === 'ru') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                code: "",
+                registrationDate: "",
+            } as RuPassportData
+
+        } else if (value === 'kz') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                idNumber: "",
+                issuedBy: "",
+                issueDate: "",
+                endDate: "",
+                registrationAddress: "",
+            } as KzPassportData
+
+        } else if (value === 'by') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                registrationAddress: "",
+            } as ByPassportData
+
+        } else {
+            newPassport = {
+                fullName: fullName,
+                citizenship: "",
+                birthDate: "",
+                number: "",
+                idNumber: "",
+                issuedBy: "",
+                issueDate: "",
+                endDate: "",
+                registrationAddress: "",
+            } as ForeignPassportData
+        }
+        const newAuthorDocsForm = { ...authorDocsForm, passport: newPassport, passportType: value }
+        flushPassportInvalidKeys()
+        setAuthorDocsForm(newAuthorDocsForm)
+    }
+
+    const handleChangeAuthorFile = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+        const newAuthors = [...authors]
+        const file = event.target.files?.[0]
+        if (file === undefined) {
+            return
+        }
+        newAuthors[index].file = file
+        setAuthors(newAuthors)
+    }
+
+    const handleOpenAuthorsDocs = (index: number) => {
+        const currentAuthor = authors[index]
+        const authorDocs = currentAuthor.docs
+        const fullName = currentAuthor.fullName
+
+        if (authorDocs === null) {
+            const emptyRuPassport: RuPassportData = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                code: "",
+                registrationDate: "",
+            }
+            const newAuthorDocs: AuthorDocs = {
+                passport: emptyRuPassport,
+                paymentType: "royalty",
+                paymentValue: "",
+                licenseOrAlienation: true,
+                passportType: "ru",
+            }
+            setAuthorDocsForm(newAuthorDocs)
+        } else {
+            setAuthorDocsForm(authorDocs)
+        }
+        setEditableAuthorIndex(index)
+    }
+
+    const handleSaveAuthorDocs = () => {
+        let formFilled = true
+        invalidFieldKeys.forEach(element => {
+            if (element.includes('passport-')) {
+                formFilled = false
+            }
+        });
+        if (authorDocsForm.paymentValue === '' && authorDocsForm.paymentType !== 'free') {
+            formFilled = false
+        }
+        Object.values(authorDocsForm.passport).forEach(element => {
+            if (element === '') {
+                formFilled = false
+            }
+        })
+        if (!formFilled) {
+            alert("Заполните все поля добавляемого документа.")
+            return
+        }
+        const newAuthorsState = [...authors]
+        newAuthorsState[editableAuthorIndex!].docs = authorDocsForm
+        setAuthors(newAuthorsState)
+        setEditableAuthorIndex(null)
+    }
+
+    const renderAuthors = (): JSX.Element => {
+
+        if (authorIsSolo) {
+            return (<></>)
+        } else {
+            return (
+                <>
+                    {
+                        (authors.length > 0) && authors.map((author, index) => (
+                            <div key={index} className="author-row">
+                                <div className="full-name">
+                                    <span className="name" >{author.fullName}</span>
+                                </div>
+                                <div className="buttons-container">
+                                    {author.file ? (<></>) : (
+                                        <svg onClick={() => {
+                                            handleOpenAuthorsDocs(index)
+
+                                        }} className='track-controls' width="33" height="33" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M14.9997 8.33326L11.6664 4.99993M2.08301 17.9166L4.90331 17.6032C5.24789 17.5649 5.42018 17.5458 5.58121 17.4937C5.72408 17.4474 5.86005 17.3821 5.98541 17.2994C6.12672 17.2062 6.2493 17.0836 6.49445 16.8385L17.4997 5.83326C18.4202 4.91279 18.4202 3.4204 17.4997 2.49993C16.5792 1.57945 15.0868 1.57945 14.1664 2.49992L3.16112 13.5052C2.91596 13.7503 2.79339 13.8729 2.70021 14.0142C2.61753 14.1396 2.55219 14.2755 2.50594 14.4184C2.4538 14.5794 2.43466 14.7517 2.39637 15.0963L2.08301 17.9166Z" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    )}
+                                    {author.docs ? (<></>) : (
+                                        <div style={{position: 'relative'}}>
+                                            <input onChange={(e) => handleChangeAuthorFile(index, e)} className="full-cover" type="file"></input>
+                                            <svg className='track-controls' width="33" height="33" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <svg onClick={() => handleDeleteAuthor(index)} className='track-controls' width="33" height="33" viewBox="0 0 33 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.6667 2H21.3333M2 6.83333H31M27.7778 6.83333L26.6479 23.7811C26.4784 26.3238 26.3937 27.5952 25.8445 28.5592C25.361 29.4079 24.6317 30.0902 23.7527 30.5162C22.7543 31 21.4801 31 18.9317 31H14.0683C11.5199 31 10.2457 31 9.24732 30.5162C8.36833 30.0902 7.63903 29.4079 7.15553 28.5592C6.60635 27.5952 6.52159 26.3238 6.35207 23.7811L5.22222 6.83333M13.2778 14.0833V22.1389M19.7222 14.0833V22.1389" stroke="white" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                        )
+                        )
+                    }
+                </>
+            )
+        }
+
+    }
+
+    const renderPassport = (): JSX.Element => {
+
+        const passportType = authorDocsForm.passportType
+        const passportData = authorDocsForm.passport
+
+        let passportSection = <></>
+
+        if (passportType === 'ru') {
+            const ruPassport = passportData as RuPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={ruPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Серия и номер</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                                {...invalidFieldKeys.has('passport-issuedBy') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Код подразделения</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.code}
+                                onChange={(event) => handleChangeCurrentPassport('code', event.target.value)}
+                                {...invalidFieldKeys.has('passport-code') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата регистрации</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.registrationDate}
+                                type={"date"}
+                                onChange={(event) => handleChangeCurrentPassport('registrationDate', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+            )
+        } else if (passportType === 'kz') {
+            const kzPassport = passportData as KzPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={kzPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={kzPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={kzPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер ID</label>
+                            <input
+                                className="field"
+                                value={kzPassport.idNumber}
+                                onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
+                                {...invalidFieldKeys.has('passport-idNumber') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={kzPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={kzPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата окончания</label>
+                            <input
+                                className="field"
+                                value={kzPassport.endDate}
+                                onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={kzPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        } else if (passportType === 'by') {
+            const byPassport = passportData as ByPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={byPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={byPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={byPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={byPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={byPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={byPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        } else if (passportType === 'foreign') {
+            const foreignPassport = passportData as ForeignPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={foreignPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Гражданство</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.citizenship}
+                                onChange={(event) => handleChangeCurrentPassport('citizenship', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер ID</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.idNumber}
+                                onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата окончания</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <div className="bubble" style={{ width: '60%' }}>
+                        <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
+
+                        <select
+                            value={passportType}
+                            onChange={(e) => {
+                                handleChangeCurrentPassportType(e.target.value);
+                            }}
+                        >
+                            <option value="ru">РФ</option>
+                            <option value="kz">КЗ</option>
+                            <option value="by">РБ</option>
+                            <option value="foreign">ИНОСТРАННЫЙ</option>
+                        </select>
+
+                    </div>
+                    <span style={{ color: '#fff', fontFamily: 'Montserrat', fontSize: '26px', fontStyle: 'normal', fontWeight: '700', lineHeight: '10px' }} onClick={() => setEditableAuthorIndex(null)}>X</span>
+                </div>
+
+                {passportSection}
+            </>
+        )
+    }
+
+    const renderDocsForm = (): JSX.Element => {
+        if (editableAuthorIndex == null) {
+            return <></>
+        }
+
+        return (
+            <div className="docs-section">
+                {renderPassport()}
+                <div style={{ marginTop: '6vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
+                        <div className="responsive-selector-field" style={{ margin: '0' }} onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: !authorDocsForm.licenseOrAlienation })}>
+                            <span className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
+                            <span className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
+                        </div>
+                    </div >
+                    <div style={{ height: '3.17vh', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
+                        <select
+                            style={{ border: '1px solid white', paddingLeft: '2vh', height: '3vh', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
+                            value={authorDocsForm.paymentType}
+                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e.target.value as 'royalty' | 'free' | 'sum' | 'other' })}
+                        >
+                            <option value="royalty">РОЯЛТИ</option>
+                            <option value="free">БЕЗВОЗМЕЗДНО</option>
+                            <option value="sum">ФИКС. СУММА</option>
+                            <option value="other">ДРУГОЕ</option>
+                        </select>
+                        {authorDocsForm.paymentType == 'free' ? (<></>) : (
+                            <input
+                                value={authorDocsForm.paymentValue || ''}
+                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
+                                style={{ padding: '6px', paddingLeft: '0.5vw', width: 'calc(11.51vw - 6px)', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                            ></input>
+                        )}
+
+                    </div>
+                </div>
+                <div style={{ marginTop: '3vh', display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <button onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                </div>
+            </div>
+        )
+    }
+
+    const renderDocsSection = (): JSX.Element => {
+        return (
+            <>
+                <div style={{ width: '100vw', height: '4.58vh', backgroundColor: '#ffffff26', marginTop: '6vh', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ АВТОРОВ</span>
+                </div>
+
+                <div onClick={() => setAuthorIsSolo(!authorIsSolo)} style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
+                    <span className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0">АРТИСТ АВТОР ВСЕГО /</span>
+                    <span className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0"> АВТОРОВ НЕСКОЛЬКО</span>
+                </div>
+
+
+                {editableAuthorIndex === null && renderAuthors()}
+                {(editableAuthorIndex !== null || authorIsSolo) ? (<></>) : (
+                    <div className="author-row">
+                        <div className="full-name-container">
+                            <input className="full-name add" value={fullNameToAdd} style={{ border: !fullNameToAddValidity ? '1px solid red' : 'none' }} onChange={(e) => {
+                                const fullName = e.target.value
+                                const isValid = fullNamesRePattern.test(fullName) || fullName === ''
+                                setFullNameToAddValidity(isValid)
+                                setFullNameToAdd(fullName)
+                            }} placeholder="ФИО" />
+                        </div>
+
+                        <div className="buttons-container">
+                            <svg onClick={fullNameToAddValidity ? (() => handleAddAuthor()) : () => { }} className='track-controls' width="33" height="33" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 15.5H7.5C6.10444 15.5 5.40665 15.5 4.83886 15.6722C3.56045 16.06 2.56004 17.0605 2.17224 18.3389C2 18.9067 2 19.6044 2 21M19 21V15M16 18H22M14.5 7.5C14.5 9.98528 12.4853 12 10 12C7.51472 12 5.5 9.98528 5.5 7.5C5.5 5.01472 7.51472 3 10 3C12.4853 3 14.5 5.01472 14.5 7.5Z" stroke="white" stroke-opacity="0.4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                    </div>
+
+                )}
+                {(editableAuthorIndex !== null && !authorIsSolo) && renderDocsForm()}
+            </>
+        )
+    }
 
     return (
         <div className="request-container">
+
+            {modalIsOpened && (
+                <div className="overlay">
+                    <div className="modal">
+                        <span>Загрузка</span>
+                    </div>
+                </div>
+            )}
 
             {/* release fields */}
             <div className="row-fields">
@@ -375,11 +1131,11 @@ export default function SingleReleaseRequest() {
                     <label className="input genre">ЖАНР*</label>
                     <select
                         value={releaseGenre}
-                        onChange={handleChangeReleaseGenre}
+                        onChange={handleChangeReleaseGenre as any}
                         required={true}
                         className="input"
                     >
-                        <option value={"Жанр 1"}>Жанр 1</option>
+                        <ReleaseGenreOptions />
                     </select>
                 </div>
 
@@ -435,7 +1191,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
                                     <input
-                                        value={trackForm.musicAuthors}
+                                        value={trackForm.musicAuthorsNames}
                                         onChange={(e) => handleChangeClipMusicAuthors(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
@@ -448,7 +1204,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
                                     <input
-                                        value={trackForm.lyricists}
+                                        value={trackForm.lyricistsNames}
                                         onChange={(e) => handleChangeClipLyricists(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
@@ -461,7 +1217,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
                                     <input
-                                        value={trackForm.phonogramProducers}
+                                        value={trackForm.phonogramProducersNames}
                                         onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
@@ -489,6 +1245,7 @@ export default function SingleReleaseRequest() {
                 )
             })}
 
+            {renderDocsSection()}
 
             <div className="submit-container">
 

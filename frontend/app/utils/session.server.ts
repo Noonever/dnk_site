@@ -2,7 +2,7 @@ import { createCookieSessionStorage, redirect } from "@remix-run/node";
 
 import type { User } from "~/types/user"
 
-import { getUserById } from "~/backend/user";
+import { getUserByUsername } from "~/backend/user";
 
 const USER_SESSION_KEY = "userId";
 
@@ -24,14 +24,14 @@ async function getSession(request: Request) {
 
 export async function createUserSession({
     request,
-    userId,
+    userName: username,
 }: {
     request: Request;
-    userId: string;
+    userName: string;
 }) {
     const session = await getSession(request);
-    session.set(USER_SESSION_KEY, userId);
-    const user = await getUserById(userId);
+    session.set(USER_SESSION_KEY, username);
+    const user = await getUserByUsername(username);
     return redirect(user?.isAdmin? "/admin/requests" : "/request", {
         headers: {
             "Set-Cookie": await sessionStorage.commitSession(session, {
@@ -41,32 +41,32 @@ export async function createUserSession({
     });
 }
 
-export async function getUserId(
+export async function getUserName(
     request: Request
-): Promise<User["id"] | undefined> {
+): Promise<User["username"] | undefined> {
     const session = await getSession(request);
     const userId = session.get(USER_SESSION_KEY);
     return userId;
 }
 
 export async function getUser(request: Request) {
-    const userId = await getUserId(request);
+    const userId = await getUserName(request);
     if (userId === undefined) return null;
 
-    const user = await getUserById(userId);
+    const user = await getUserByUsername(userId);
     if (user) return user;
 
     throw await logout(request);
 }
 
-export async function requireUserId(
+export async function requireUserName(
   request: Request,
 ) {
-  const userId = await getUserId(request);
-  if (!userId) {
+  const userName = await getUserName(request);
+  if (!userName) {
     throw redirect('/login');
   }
-  return userId;
+  return userName;
 }
 
 

@@ -12,7 +12,7 @@ input::placeholder {
 }
 
 .track-header {
-    margin-top: 4.7777vh;
+    margin-top: 1vh;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -85,6 +85,7 @@ input.release {
     height: 4.4vh;
     padding-left: 2vw;
     margin-top: 1vh;
+    border-radius: 0%;
 }
 
 input#left {
@@ -123,15 +124,13 @@ input#right {
     padding-right: 1vw;
 }
 
-select,
 select option {
-    background-color: rgba(255, 255, 255, 0.15);
-    border: none;
     color: rgb(255, 255, 255);
     font-family: Montserrat;
     font-size: 15px;
     font-style: normal;
     font-weight: 700;
+    padding: 6px;
 }
 
 .release-cover-selector {
@@ -216,7 +215,7 @@ input.preview {
 .lower-left-track-fields {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    gap: 1vh;
 }
 
 .load-row {
@@ -252,7 +251,7 @@ svg.track-controls:hover path {
     flex-direction: row;
     justify-content: space-evenly;
     align-items: center;
-    width: 137px;
+    width: calc(7.87649653vw + 2.7777vh);
     height: 48px;
     border-radius: 30px;
     background-color: rgba(255, 255, 255, 0.405);
@@ -345,7 +344,7 @@ svg.agreement {
 button.submit {
     background-color: rgb(255, 255, 255);
     height: 4.14vh;
-    width: 15.01vw;
+    width: 12.01vw;
     border-radius: 30px;
     border: none;
     cursor: pointer;
@@ -386,7 +385,6 @@ button.round {
 }
 
 .back-catalog-field {
-
     display: flex;
     flex-direction: row;
     justify-content: end;
@@ -401,23 +399,52 @@ input.back-catalog {
     width: 14.94841269vw;
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #fff;
-    padding: 20px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+.author-row {
+    width: 100%;;
+    display: flex;
+    margin-top: 2vh;
+    display: flex;
+    flex-direction: row;
+    height: 3.17vh;
+    align-items: center;
 }
 
-.overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+.full-name {
+    display: flex;
+    width: calc((7.87649653vw + 2.7777vh)*2);  
+    height: 3.17vh;
+    border-radius: 30px;
+    padding-left: 2vw; 
+    border: 1px solid white;
+    margin-right: 1.70743vw;
+    background-color: #ffffff26;
+    align-items: center;
+}
+
+span.name {
+    color: #fff;
+    font-family: Montserrat;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+input.add {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.buttons-container {
+    height: 3.17vh;
+    display: flex;
+    flex-direction: row;
+    gap: 1.171112vw;
+    align-items: center;
+}
+
+input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-right: 5%;
+    border-radius: 4px;
+    opacity: 1;
+    filter: invert(0.8);
 }

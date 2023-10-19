@@ -1,10 +1,10 @@
-.user-profile {
+.user-docs {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
 
-.profile-section {
+.docs-section {
     padding: 2vw;
     width: 41.2vw;
     height: 100%;
@@ -33,7 +33,7 @@
 
 }
 
-svg.icon{
+svg.icon {
     padding: 0.1vw;
     border-radius: 0.5vw;
     background-color: rgba(255, 255, 255, 0.594);
@@ -80,7 +80,15 @@ input.field {
 }
 
 input[type='date'] {
-    padding-right: 75%;
+    
+}
+
+input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-right: 87%;
+    border-radius: 4px;
+    opacity: 1;
+    filter: invert(0.8);
 }
 
 .responsive-selector-field {
@@ -108,8 +116,11 @@ input.full-cover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent; /* Make the input field background transparent */
-    border: none; /* Remove borders if not needed */
-    z-index: 1000; /* Ensure the input is above other elements */
+    background: transparent;
+    /* Make the input field background transparent */
+    border: none;
+    /* Remove borders if not needed */
+    z-index: 1000;
+    /* Ensure the input is above other elements */
     opacity: 0;
 }

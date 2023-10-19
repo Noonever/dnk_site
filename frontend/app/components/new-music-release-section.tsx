@@ -1,82 +1,45 @@
 import { useState } from "react";
-import type { ActionArgs, LinksFunction, MetaFunction } from "@remix-run/node";
 
-import { useSubmit } from "@remix-run/react";
-import { uploadAlbumRequest } from "~/backend/release";
+import { uploadFile } from "~/backend/file";
+import { updateReleaseRequest } from "~/backend/release";
 
-export const meta: MetaFunction = () => {
-    return [
-        { title: "DNK | Заявка | Альбом" },
-        { name: "description", content: "Добро пожаловать в DNK" },
-    ];
-};
+import type { ReleaseRequest, NewMusicTrackUpload, NewMusicReleaseUpload, ReleaseRequestUpdate } from "~/types/release";
 
-export async function action({ request }: ActionArgs) {
-    const formData = await request.formData()
-    let data = Object.fromEntries(formData);
-    await uploadAlbumRequest(data)
-    return new Response('OK', { status: 200 });
+import ReleaseGenreOptions from "./release-genres";
+import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~/utils/regexp";
+
+
+interface NewMusicTrackForm extends NewMusicTrackUpload {
+    textFile: File | undefined;
+    wavFile: File | undefined;
 }
 
-export default function AlbumReleaseRequest() {
-    const submit = useSubmit();
+export default function NewMusicReleaseSection(
+    props: {
+        request: ReleaseRequest
+    }
+) {
 
-    const [releasePerformers, setReleasePerformers] = useState("");
-    const [releaseTitle, setReleaseTitle] = useState("");
-    const [releaseVersion, setReleaseVersion] = useState("");
-    const [releaseGenre, setReleaseGenre] = useState("Жанр 1");
+    const request = props.request
+    const data: NewMusicReleaseUpload = request.data as NewMusicReleaseUpload;
+
+    const [releaseDate, setReleaseDate] = useState(request.date);
+    const [releaseImprint, setReleaseImprint] = useState(request.imprint);
+
+    const [releasePerformers, setReleasePerformers] = useState(data.performers);
+    const [releaseTitle, setReleaseTitle] = useState(data.title);
+    const [releaseVersion, setReleaseVersion] = useState(data.version);
+    const [releaseGenre, setReleaseGenre] = useState(data.genre);
     const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
 
-    const [defaultTrackPerformers, setDefaultTrackPerformers] = useState('')
-
-    const defaultTrack: {
-        performers: string,
-        title: string,
-        version: string,
-        explicit: boolean,
-        preview: string,
-        isCover: boolean,
-        wavFile: File | undefined,
-        textFile: File | undefined,
-        performersNames: string,
-        musicAuthors: string,
-        lyricists: string,
-        phonogramProducers: string,
-    } = {
-        performers: defaultTrackPerformers,
-        title: "",
-        version: "",
-        explicit: false,
-        preview: "0:00",
-        isCover: false,
-        wavFile: undefined,
-        textFile: undefined,
-        performersNames: "",
-        musicAuthors: "",
-        lyricists: "",
-        phonogramProducers: "",
-    }
-
-    const [trackForms, setTrackForms] = useState([
-        defaultTrack,
-    ]);
-
-    const [userAgreed, setUserAgreed] = useState(false)
+    const [trackForms, setTrackForms] = useState(data.tracks as NewMusicTrackForm[]);
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
+    const [modalIsOpened, setModalIsOpened] = useState(false);
 
     const minTracks = 1
     const maxTracks = 100
 
-    const fullNamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const multipleNicknamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const timeRePattern = /^([01][0-9]|2[0-3]):[0-5][0-9]$/
-
-    // const requiredFieldKeys = [
-
-    // ]
-
-    // release fields
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
         const releasePerformers = event.target.value
@@ -106,7 +69,6 @@ export default function AlbumReleaseRequest() {
             newInvalidFieldKeys.delete(`release-performers`)
         }
 
-        setDefaultTrackPerformers(releasePerformers)
         setInvalidFieldKeys(newInvalidFieldKeys)
         setReleasePerformers(releasePerformers);
         setTrackForms(newTrackForms);
@@ -227,7 +189,6 @@ export default function AlbumReleaseRequest() {
             alert("Неверный формат файла");
         } else {
             newTrackForms[trackId].wavFile = file
-            console.log(newTrackForms[trackId].wavFile)
         }
         setTrackForms(newTrackForms);
     }
@@ -243,7 +204,6 @@ export default function AlbumReleaseRequest() {
             alert("Неверный формат файла");
         } else {
             newTrackForms[trackId].textFile = file;
-            console.log(newTrackForms[trackId].textFile)
         }
         setTrackForms(newTrackForms);
     }
@@ -273,12 +233,12 @@ export default function AlbumReleaseRequest() {
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
 
         if (!fullNamesRePattern.test(musicAuthors) && musicAuthors !== '') {
-            newInvalidFieldKeys.add(`${trackId}-track-musicAuthors`)
+            newInvalidFieldKeys.add(`${trackId}-track-musicAuthorsNames`)
         } else {
-            newInvalidFieldKeys.delete(`${trackId}-track-musicAuthors`)
+            newInvalidFieldKeys.delete(`${trackId}-track-musicAuthorsNames`)
         }
 
-        newTrackForms[trackId].musicAuthors = musicAuthors;
+        newTrackForms[trackId].musicAuthorsNames = musicAuthors;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -287,17 +247,16 @@ export default function AlbumReleaseRequest() {
     const handleChangeTrackLyricists = (event: React.ChangeEvent<HTMLInputElement>, trackId: number) => {
         // validated
         const lyricists = event.target.value
-        console.log(lyricists)
         const newTrackForms = [...trackForms];
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
 
         if (!fullNamesRePattern.test(lyricists) && lyricists !== '') {
-            newInvalidFieldKeys.add(`${trackId}-track-lyricists`)
+            newInvalidFieldKeys.add(`${trackId}-track-lyricistsNames`)
         } else {
-            newInvalidFieldKeys.delete(`${trackId}-track-lyricists`)
+            newInvalidFieldKeys.delete(`${trackId}-track-lyricistsNames`)
         }
 
-        newTrackForms[trackId].lyricists = lyricists;
+        newTrackForms[trackId].lyricistsNames = lyricists;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -310,12 +269,12 @@ export default function AlbumReleaseRequest() {
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
 
         if (!fullNamesRePattern.test(phonogramProducers) && phonogramProducers !== '') {
-            newInvalidFieldKeys.add(`${trackId}-track-phonogramProducers`)
+            newInvalidFieldKeys.add(`${trackId}-track-phonogramProducersNames`)
         } else {
-            newInvalidFieldKeys.delete(`${trackId}-track-phonogramProducers`)
+            newInvalidFieldKeys.delete(`${trackId}-track-phonogramProducersNames`)
         }
 
-        newTrackForms[trackId].phonogramProducers = phonogramProducers;
+        newTrackForms[trackId].phonogramProducersNames = phonogramProducers;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -325,7 +284,7 @@ export default function AlbumReleaseRequest() {
         const newTrackForms = [...trackForms];
 
         newTrackForms.push({
-            performers: defaultTrackPerformers,
+            performers: "",
             title: "",
             version: "",
             explicit: false,
@@ -334,9 +293,11 @@ export default function AlbumReleaseRequest() {
             wavFile: undefined,
             textFile: undefined,
             performersNames: "",
-            musicAuthors: "",
-            lyricists: "",
-            phonogramProducers: "",
+            musicAuthorsNames: "",
+            lyricistsNames: "",
+            phonogramProducersNames: "",
+            wavFileId: "",
+            textFileId: "",
         })
 
         setTrackForms(newTrackForms);
@@ -363,9 +324,9 @@ export default function AlbumReleaseRequest() {
 
         for (let track of newTrackForms) {
             track.performersNames = trackForms[trackId].performersNames
-            track.musicAuthors = trackForms[trackId].musicAuthors
-            track.lyricists = trackForms[trackId].lyricists
-            track.phonogramProducers = trackForms[trackId].phonogramProducers
+            track.musicAuthorsNames = trackForms[trackId].musicAuthorsNames
+            track.lyricistsNames = trackForms[trackId].lyricistsNames
+            track.phonogramProducersNames = trackForms[trackId].phonogramProducersNames
         }
 
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
@@ -378,48 +339,26 @@ export default function AlbumReleaseRequest() {
             } else {
                 newInvalidFieldKeys.delete(`${index}-track-performersNames`)
             }
-            if (invalidFieldKeys.has(`${trackId}-track-musicAuthors`)) {
-                newInvalidFieldKeys.add(`${index}-track-musicAuthors`)
+            if (invalidFieldKeys.has(`${trackId}-track-musicAuthorsNames`)) {
+                newInvalidFieldKeys.add(`${index}-track-musicAuthorsNames`)
             } else {
-                newInvalidFieldKeys.delete(`${index}-track-musicAuthors`)
+                newInvalidFieldKeys.delete(`${index}-track-musicAuthorsNames`)
             }
-            if (invalidFieldKeys.has(`${trackId}-track-lyricists`)) {
-                newInvalidFieldKeys.add(`${index}-track-lyricists`)
+            if (invalidFieldKeys.has(`${trackId}-track-lyricistsNames`)) {
+                newInvalidFieldKeys.add(`${index}-track-lyricistsNames`)
             } else {
-                newInvalidFieldKeys.delete(`${index}-track-lyricists`)
+                newInvalidFieldKeys.delete(`${index}-track-lyricistsNames`)
             }
-            if (invalidFieldKeys.has(`${trackId}-track-phonogramProducers`)) {
-                newInvalidFieldKeys.add(`${index}-track-phonogramProducers`)
+            if (invalidFieldKeys.has(`${trackId}-track-phonogramProducersNames`)) {
+                newInvalidFieldKeys.add(`${index}-track-phonogramProducersNames`)
             } else {
-                newInvalidFieldKeys.delete(`${index}-track-phonogramProducers`)
+                newInvalidFieldKeys.delete(`${index}-track-phonogramProducersNames`)
             }
 
         }
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
-    }
-
-    function fileToByteArray(file: File): Promise<Uint8Array> {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                if (event.target?.result instanceof ArrayBuffer) {
-                    const arrayBuffer = event.target.result;
-                    const byteArray = new Uint8Array(arrayBuffer);
-                    resolve(byteArray);
-                } else {
-                    reject(new Error('Failed to read file as ArrayBuffer.'));
-                }
-            };
-
-            reader.onerror = (event) => {
-                reject(new Error('Failed to read file: ' + event.target?.error));
-            };
-
-            reader.readAsArrayBuffer(file);
-        });
     }
 
     const err_notificate = () => {
@@ -433,8 +372,6 @@ export default function AlbumReleaseRequest() {
             return
         }
 
-        const formData = new FormData()
-        
         if (releasePerformers === "") {
             err_notificate()
             return
@@ -443,91 +380,121 @@ export default function AlbumReleaseRequest() {
             err_notificate()
             return
         }
-        if (releaseVersion === "") {
-            // not required
-        }
-        if (releaseCoverFile === undefined) {
+        if (releaseCoverFile === undefined && data.coverFileId === "") {
             err_notificate()
             return
         }
 
-        const coverFileBytes = String(await fileToByteArray(releaseCoverFile))
+        const tracks: NewMusicTrackUpload[] = []
 
-        formData.append(`releasePerformers`, releasePerformers)
-        formData.append(`releaseTitle`, releaseTitle)
-        formData.append(`releaseVersion`, releaseVersion)
-        formData.append(`releaseGenre`, releaseGenre)
-        formData.append(`releaseCoverFile`, coverFileBytes)
+        for (let [index, track] of trackForms.entries()) {
 
-        for (let track of trackForms) {
+            let textFileId = track.textFileId
+            let wavFileId = track.wavFileId
+
             if (track.wavFile === undefined) {
-                alert("Прикрепите wavFile")
-                break
+                if (track.wavFileId === "") {
+                    alert("Прикрепите wavFile")
+                return
+                }
+            } else {
+                wavFileId = await uploadFile(track.wavFile)
             }
-            const trackWavFileBytes = String(await fileToByteArray(track.wavFile))
-            
-            let trackTextFileBytes = ''
             if (track.textFile !== undefined) {
-                trackTextFileBytes = String(await fileToByteArray(track.textFile))
+                textFileId = await uploadFile(track.textFile)
             }
 
             if (track.performers === "") {
                 err_notificate()
-                break
+                return
             }
             if (track.title === "") {
                 err_notificate()
-                break
+                return
             }
             if (track.performersNames === "") {
                 err_notificate()
-                break
+                return
             }
-            if (track.musicAuthors === "") {
+            if (track.musicAuthorsNames === "") {
                 err_notificate()
-                break
+                return
             }
-            if (track.phonogramProducers === "") {
+            if (track.phonogramProducersNames === "") {
                 err_notificate()
-                break
+                return
             }
 
-            formData.append(`${trackForms.indexOf(track)}-track-performers`, track.performers)
-            formData.append(`${trackForms.indexOf(track)}-track-title`, track.title)
-            formData.append(`${trackForms.indexOf(track)}-track-version`, track.version)
-            formData.append(`${trackForms.indexOf(track)}-track-explicit`, String(track.explicit))
-            formData.append(`${trackForms.indexOf(track)}-track-preview`, track.preview)
-            formData.append(`${trackForms.indexOf(track)}-track-isCover`, String(track.isCover))
-            formData.append(`${trackForms.indexOf(track)}-track-wavFile`, trackWavFileBytes)
-            formData.append(`${trackForms.indexOf(track)}-track-textFile`, trackTextFileBytes)
-            formData.append(`${trackForms.indexOf(track)}-track-performersNames`, track.performersNames)
-            formData.append(`${trackForms.indexOf(track)}-track-musicAuthors`, track.musicAuthors)
-            formData.append(`${trackForms.indexOf(track)}-track-lyricists`, track.lyricists)
-            formData.append(`${trackForms.indexOf(track)}-track-phonogramProducers`, track.phonogramProducers)
+            const trackData: NewMusicTrackUpload = {
+                performers: track.performers,
+                title: track.title,
+                version: track.version,
+                explicit: track.explicit,
+                preview: track.preview,
+                isCover: track.isCover,
+                performersNames: track.performersNames,
+                musicAuthorsNames: track.musicAuthorsNames,
+                lyricistsNames: track.lyricistsNames,
+                phonogramProducersNames: track.phonogramProducersNames,
+                wavFileId,
+                textFileId
+            }
+
+            tracks.push(trackData)
         }
+
+        let coverFileId = data.coverFileId
+        if (releaseCoverFile !== undefined) {
+            coverFileId = await uploadFile(releaseCoverFile)
+        }
+
+        const NewMusicRelease: NewMusicReleaseUpload = {
+            performers: releasePerformers,
+            title: releaseTitle,
+            version: releaseVersion,
+            genre: releaseGenre,
+            tracks: tracks,
+            coverFileId,
+        }
+
         try {
-            submit(formData, { method: 'post', action: '/request/album' });
+            const updatingReleaseRequest: ReleaseRequestUpdate = {
+                date: releaseDate,
+                imprint: releaseImprint,
+                data: NewMusicRelease,
+            }
+            setModalIsOpened(true)
+            const response = await updateReleaseRequest(request.id, updatingReleaseRequest)
+            if (response !== null) {
+                setModalIsOpened(false)
+                console.log(response)
+            }
         } catch (error) {
             // Handle network errors
             console.error('Network error:', error);
         }
     }
-    console.log('invalidFieldKeys', invalidFieldKeys)
 
     return (
+
         <div className="request-container">
 
-            {/* release fields */}
-            <div className="row-fields">
+            {modalIsOpened && (
+                <div className="overlay">
+                    <div className="modal">
+                        <span>Загрузка</span>
+                    </div>
+                </div>
+            )}
+            <div className="release-container">
 
                 {/* release performers */}
                 <div className="row-field" >
-                    <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ</label>
                     <div className="row-field-input-container">
                         <input
                             value={releasePerformers}
                             onChange={handleChangeReleasePerformers}
-                            name="release-performers"
                             placeholder="Кобяков"
                             required={true}
                             id="left"
@@ -540,12 +507,11 @@ export default function AlbumReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
+                    <label className="input shifted">НАЗВАНИЕ</label>
                     <div className="row-field-input-container">
                         <input
                             value={releaseTitle}
                             onChange={handleChangeReleaseTitle}
-                            name="release-title"
                             placeholder="Пушка"
                             required={true}
                             className="field release"
@@ -556,18 +522,40 @@ export default function AlbumReleaseRequest() {
                 </div>
 
                 {/* release version */}
-                <div className="row-field" id="right">
+                <div className="row-field">
                     <label className="input shifted">ВЕРСИЯ</label>
                     <div className="row-field-input-container">
                         <input
                             value={releaseVersion}
                             onChange={handleChangeReleaseVersion}
-                            name="release-version"
                             placeholder="Remix"
-                            id="right"
                             className="field release"
                             {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
                             type="text"
+                        />
+                    </div>
+                </div>
+
+                <div className="row-field">
+                    <label className="input shifted">ДАТА РЕЛИЗА</label>
+                    <div className="row-field-input-container">
+                        <input
+                            value={releaseDate}
+                            onChange={(e) => setReleaseDate(e.target.value)}
+                            className="field release"
+                            type="date"
+                        />
+                    </div>
+                </div>
+                
+                <div className="row-field">
+                    <label className="input shifted">ИМПРИНТ</label>
+                    <div className="row-field-input-container">
+                        <input
+                            value={releaseImprint}
+                            onChange={(e) => setReleaseImprint(e.target.value)}
+                            id='right'
+                            className="field release"
                         />
                     </div>
                 </div>
@@ -584,11 +572,11 @@ export default function AlbumReleaseRequest() {
                     <label className="input genre">ЖАНР*</label>
                     <select
                         value={releaseGenre}
-                        onChange={handleChangeReleaseGenre}
+                        onChange={handleChangeReleaseGenre as any}
                         required={true}
                         className="input"
                     >
-                        <option value={"Жанр 1"}>Жанр 1</option>
+                        <ReleaseGenreOptions />
                     </select>
                 </div>
 
@@ -596,7 +584,7 @@ export default function AlbumReleaseRequest() {
                 <div className="release-cover-selector">
                     <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
                     <label className="input cover">ОБЛОЖКА*</label>
-                    {!releaseCoverFile ? (
+                    {(!releaseCoverFile && data.coverFileId === '') ? (
                         <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="black" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -632,7 +620,7 @@ export default function AlbumReleaseRequest() {
                                             required={true}
                                             id="left"
                                             className="field release"
-                                            {...invalidFieldKeys.has(`${index}-track-performers`) ? { style: { border: "1px solid red" } } : null}
+                                            {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
                                             type="text"
                                         />
                                     </div>
@@ -660,7 +648,7 @@ export default function AlbumReleaseRequest() {
                                     <label className="input shifted">ВЕРСИЯ</label>
                                     <div className="row-field-input-container">
                                         <input
-                                            value={trackForm.version}
+                                            value={trackForm.version? trackForm.version : ''}
                                             onChange={(e) => handleChangeTrackVersion(e, index)}
                                             name="release-version"
                                             placeholder="Remix"
@@ -728,7 +716,7 @@ export default function AlbumReleaseRequest() {
                                         <div className="load-file">
                                             <label className="input">.WAV*</label>
                                             <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
-                                            {!trackForm.wavFile ? (
+                                            {(!trackForm.wavFile && trackForm.wavFileId === '') ? (
                                                 <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="black" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
@@ -745,7 +733,7 @@ export default function AlbumReleaseRequest() {
                                         <div className="load-file">
                                             <label className="input">ТЕКСТ</label>
                                             <input accept=".txt" onChange={(e) => handleChangeTrackTextFile(e, index)} type="file" className="full-cover" />
-                                            {!trackForm.textFile ? (
+                                            {(!trackForm.textFile && trackForm.textFileId === null) ? (
                                                 <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="black" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
@@ -778,10 +766,10 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
                                     <input
-                                        value={trackForm.musicAuthors}
+                                        value={trackForm.musicAuthorsNames}
                                         onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
                                         className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
+                                        {...invalidFieldKeys.has(`${index}-track-musicAuthorsNames`) ? { style: { border: "1px solid red" } } : null}
                                         placeholder="Иванов Иван Иванович"
                                         type="text"
                                     />
@@ -791,10 +779,10 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
                                     <input
-                                        value={trackForm.lyricists}
+                                        value={trackForm.lyricistsNames? trackForm.lyricistsNames : ''}
                                         onChange={(e) => handleChangeTrackLyricists(e, index)}
                                         className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
+                                        {...invalidFieldKeys.has(`${index}-track-lyricistsNames`) ? { style: { border: "1px solid red" } } : null}
                                         placeholder="Иванов Иван Иванович"
                                         type="text"
                                     />
@@ -804,10 +792,10 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
                                     <input
-                                        value={trackForm.phonogramProducers}
+                                        value={trackForm.phonogramProducersNames}
                                         onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
                                         className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
+                                        {...invalidFieldKeys.has(`${index}-track-phonogramProducersNames`) ? { style: { border: "1px solid red" } } : null}
                                         placeholder="Иванов Иван Иванович"
                                         type="text"
                                     />
@@ -827,15 +815,8 @@ export default function AlbumReleaseRequest() {
 
             <div className="submit-container">
 
-                <div className="agreement-container">
-                    <svg className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="30" height="30" viewBox="0 0 18 18" fill={userAgreed ? "green" : "none"} xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="black" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <a className="agreement" href="https://youtube.com"> Даю согласие на обработку персональных данных</a>
-                </div>
-
-                <div className="submit-button-container" style={!userAgreed ? { color: "none", pointerEvents: "none", opacity: 0.5, cursor: "not-allowed" } : {}}>
-                    <button onClick={handleSubmit} disabled={!userAgreed} className="submit">ОТПРАВИТЬ РЕЛИЗ</button>
+                <div className="submit-button-container">
+                    <button onClick={handleSubmit} className="submit">СОХРАНИТЬ</button>
                 </div>
 
             </div>

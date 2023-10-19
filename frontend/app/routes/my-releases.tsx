@@ -3,7 +3,7 @@ import { useLoaderData } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import styles from "~/styles/my-releases.css";
 import styles2 from "~/styles/request.single.css";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserName } from "~/utils/session.server";
 
 export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: styles }, { rel: "stylesheet", href: styles2 }];
@@ -84,66 +84,9 @@ type processedRelease = {
 }
 
 export async function loader({ request }: LoaderArgs): Promise<{ userReleases: processedRelease[] }> {
-    const userId = await requireUserId(request);
-    const userReleases: processedRelease[] = [
-        {
-            id: "1",
-            type: "clip",
-            data: {
-                performers: "John Doe",
-                title: "Release 1",
-                version: "Version 1",
-                genre: "Pop",
-                coverLink: "cover1.jpg",
-                date: "2022-01-01",
-                tracks: [
-                    {
-                        performers: "John Doe",
-                        title: "Track 1",
-                        version: "Version 1",
-                        explicit: false,
-                        preview: "0:00",
-                        isCover: false,
-                        wavLink: "track1.wav",
-                        textLink: "lyrics1.txt",
-                        performersNames: "John Doe, Jane Smith",
-                        musicAuthorsNames: "John Doe",
-                        lyricistsNames: "Jane Smith",
-                        phonogramProducersNames: "Alice Johnson",
-                    }
-                ]
-            }
-        },
-        {
-            id: "2",
-            type: 'back-catalog',
-            data: {
-                performers: "Jane Smith",
-                title: "Release 2",
-                version: "Version 2",
-                genre: "Rock",
-                coverLink: "cover2.jpg",
-                date: "2022-02-02",
-                tracks: [
-                    {
-                        performers: "Jane Smith",
-                        title: "Track 2",
-                        version: "Version 2",
-                        explicit: true,
-                        preview: "0:00",
-                        isCover: false,
-                        wavLink: "track2.wav",
-                        textLink: "lyrics2.txt",
-                        performersNames: "Jane Smith",
-                        musicAuthorsNames: "Jane Smith",
-                        lyricistsNames: "Jane Smith",
-                        phonogramProducersNames: "Bob Williams",
-                    }
-                ]
-            }
-        }
-    ];
-    return { userReleases };
+    const userId = await requireUserName(request);
+    
+    return [];
 }
 
 export default function MyReleases() {

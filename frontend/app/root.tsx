@@ -13,7 +13,7 @@ import {
     useLoaderData,
 } from "@remix-run/react";
 
-import styles from "./root.css";
+import styles from "./tailwind.css";
 import { getUser } from "~/utils/session.server";
 
 export const links: LinksFunction = () => {
@@ -63,7 +63,6 @@ export default function App() {
                         {isAdmin ? (
                             <>
                                 <div id="header-left">
-                                    <NavLink className={"link admin"} to="/admin/request">ОТПРАВИТЬ ЗАЯВКУ НА РЕЛИЗ</NavLink>
                                     <NavLink className={"link admin"} to="/admin/requests">ЗАЯВКИ НА ОТГРУЗКУ</NavLink>
                                     <NavLink className={"link admin"} to="/admin/users">ПОЛЬЗОВАТЕЛИ</NavLink>
                                 </div>

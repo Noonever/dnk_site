@@ -1,8 +1,8 @@
 import { Outlet } from "@remix-run/react";
 import styles from "../styles/admin.css";
 import { LoaderArgs, redirect } from "@remix-run/node";
-import { getUserById } from "~/backend/user";
-import { requireUserId } from "~/utils/session.server";
+import { getUserByUsername } from "~/backend/user";
+import { requireUserName } from "~/utils/session.server";
 
 export const meta: MetaFunction = () => {
     return [
@@ -16,8 +16,8 @@ export const links: LinksFunction = () => {
 };
 
 export async function  loader({request}:LoaderArgs) {
-    const userId = await requireUserId(request);
-    const user = await getUserById(userId);
+    const userId = await requireUserName(request);
+    const user = await getUserByUsername(userId);
     if (!user?.isAdmin) {
         throw new Response("Unauthorized", { status: 401 });
     }

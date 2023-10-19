@@ -1,10 +1,10 @@
 import type { LinksFunction, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { NavLink, Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { useEffect } from "react";
-import { getUserById } from "~/backend/user";
+import { getUserByUsername } from "~/backend/user";
 
 import styles from "~/styles/request.css";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserName } from "~/utils/session.server";
 
 export const meta: MetaFunction = () => {
     return [
@@ -19,8 +19,8 @@ export const links: LinksFunction = () => {
 
 
 export async function loader({request}: LoaderArgs) {
-    const userId = await requireUserId(request);
-    const user = await getUserById(userId);
+    const userName = await requireUserName(request);
+    const user = await getUserByUsername(userName);
     return user;
 }   
 
@@ -36,8 +36,8 @@ export default function ReleaseRequest() {
 
     if (!user.isVerified) {
         return (
-            <div>
-                <span className="info-text">Для отправки заявок необходимо заполнить данные в    </span><a className="info-text" href="/me">профиле</a>
+            <div style={{cursor: "pointer"}} onClick={() => navigate('/me')}>
+                <span className="info-text" style={{textDecoration: "underline"}}>Для отправки заявок необходимо заполнить данные в профиле</span>      
             </div>
         );
     }

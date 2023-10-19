@@ -1,10 +1,27 @@
 import { useState } from "react";
-import type { ActionArgs, LinksFunction, MetaFunction } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import type { LinksFunction, LoaderArgs, MetaFunction } from "@remix-run/node";
+
+import { uploadFile } from "~/backend/file";
+import { uploadBackCatalogReleaseRequest } from "~/backend/release";
+import type { BackCatalogReleaseUpload, BackCatalogTrackUpload } from "~/types/release";
+import type { ByPassportData, ForeignPassportData, KzPassportData, RuPassportData } from "~/types/user_data";
+import type { AuthorForm, AuthorDocs, Author } from "~/types/author";
+
+import { requireUserName } from "~/utils/session.server";
 
 import styles from "~/styles/request.single.css";
-import { useSubmit } from "@remix-run/react";
-import { uploadBackCatalogRequest } from "~/backend/release";
+import passportStyles from "~/styles/me.css";
+import ReleaseGenreOptions from "~/components/release-genres";
 
+import { fullNamesRePattern, multipleNicknamesRePattern, tenDigitsRePattern, timeRePattern } from "~/utils/regexp";
+
+const fullNameRePattern = fullNamesRePattern
+const sixDigitsRePattern = /^\d{6}$/
+const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
+const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+
+//@ts-ignore
 export const meta: MetaFunction = () => {
     return [
         { title: "DNK | Заявка | Бэк-каталог" },
@@ -13,18 +30,16 @@ export const meta: MetaFunction = () => {
 };
 
 export const links: LinksFunction = () => {
-    return [{ rel: "stylesheet", href: styles }];
+    return [{rel: "stylesheet", href: passportStyles}, { rel: "stylesheet", href: styles }];
 };
 
-export async function action({ request }: ActionArgs) {
-    const formData = await request.formData()
-    let data = Object.fromEntries(formData);
-    await uploadBackCatalogRequest(data)
-    return new Response('OK', { status: 200 });
+export async function loader({ request }: LoaderArgs): Promise<string> {
+    const userId = await requireUserName(request);
+    return userId;
 }
 
 export default function AlbumReleaseRequest() {
-    const submit = useSubmit();
+    const userId = useLoaderData<typeof loader>();
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
@@ -47,10 +62,10 @@ export default function AlbumReleaseRequest() {
         wavFile: File | undefined,
         textFile: File | undefined,
         performersNames: string,
-        musicAuthors: string,
-        lyricists: string,
-        phonogramProducers: string,
-        ISRC: string,
+        musicAuthorsNames: string,
+        lyricistsNames: string,
+        phonogramProducersNames: string,
+        isrc: string,
     } = {
         performers: defaultTrackPerformers,
         title: "",
@@ -61,10 +76,10 @@ export default function AlbumReleaseRequest() {
         wavFile: undefined,
         textFile: undefined,
         performersNames: "",
-        musicAuthors: "",
-        lyricists: "",
-        phonogramProducers: "",
-        ISRC: "",
+        musicAuthorsNames: "",
+        lyricistsNames: "",
+        phonogramProducersNames: "",
+        isrc: "",
     }
 
     const [trackForms, setTrackForms] = useState([
@@ -74,21 +89,33 @@ export default function AlbumReleaseRequest() {
     const [userAgreed, setUserAgreed] = useState(false)
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
+    const [modalIsOpened, setModalIsOpened] = useState(false);
+
+    const [authorIsSolo, setAuthorIsSolo] = useState(true);
+    const [fullNameToAdd, setFullNameToAdd] = useState('');
+    const [fullNameToAddValidity, setFullNameToAddValidity] = useState(true);
+    const [authors, setAuthors] = useState<AuthorForm[]>([]);
+    const [editableAuthorIndex, setEditableAuthorIndex] = useState<number | null>(null);
+
+    const [authorDocsForm, setAuthorDocsForm] = useState<AuthorDocs>({
+        licenseOrAlienation: false,
+        paymentType: 'royalty',
+        paymentValue: '0',
+        passportType: 'ru',
+        passport: {
+            fullName: "",
+            birthDate: "",
+            number: "",
+            issuedBy: "",
+            issueDate: "",
+            code: "",
+            registrationDate: "",
+        }
+    })
 
     const minTracks = 1
     const maxTracks = 100
 
-    const fullNamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const multipleNicknamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const timeRePattern = /^([01][0-9]|2[0-3]):[0-5][0-9]$/
-    const tenDigitsRePattern = /^[0-9]{10}$/
-    const dateRePattern = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/
-
-    // const requiredFieldKeys = [
-
-    // ]
-
-    // release fields
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
         const releasePerformers = event.target.value
@@ -173,16 +200,8 @@ export default function AlbumReleaseRequest() {
     const handleChangeReleaseDate = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
         const releaseDate = event.target.value
-        const newInvalidFieldKeys = new Set(invalidFieldKeys)
-
-        if (!dateRePattern.test(releaseDate) && releaseDate !== '') {
-            newInvalidFieldKeys.add(`release-date`)
-        } else {
-            newInvalidFieldKeys.delete(`release-date`)
-        }
 
         setReleaseDate(releaseDate);
-        setInvalidFieldKeys(newInvalidFieldKeys);
     }
 
     const handleChangeReleaseSource = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -335,7 +354,7 @@ export default function AlbumReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-musicAuthors`)
         }
 
-        newTrackForms[trackId].musicAuthors = musicAuthors;
+        newTrackForms[trackId].musicAuthorsNames = musicAuthors;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -354,7 +373,7 @@ export default function AlbumReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-lyricists`)
         }
 
-        newTrackForms[trackId].lyricists = lyricists;
+        newTrackForms[trackId].lyricistsNames = lyricists;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -372,7 +391,7 @@ export default function AlbumReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-phonogramProducers`)
         }
 
-        newTrackForms[trackId].phonogramProducers = phonogramProducers;
+        newTrackForms[trackId].phonogramProducersNames = phonogramProducers;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -390,7 +409,7 @@ export default function AlbumReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-ISRC`)
         }
 
-        newTrackForms[trackId].ISRC = ISRC;
+        newTrackForms[trackId].isrc = ISRC;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setTrackForms(newTrackForms);
@@ -409,10 +428,10 @@ export default function AlbumReleaseRequest() {
             wavFile: undefined,
             textFile: undefined,
             performersNames: "",
-            musicAuthors: "",
-            lyricists: "",
-            phonogramProducers: "",
-            ISRC: "",
+            musicAuthorsNames: "",
+            lyricistsNames: "",
+            phonogramProducersNames: "",
+            isrc: "",
         })
 
         setTrackForms(newTrackForms);
@@ -439,9 +458,9 @@ export default function AlbumReleaseRequest() {
 
         for (let track of newTrackForms) {
             track.performersNames = trackForms[trackId].performersNames
-            track.musicAuthors = trackForms[trackId].musicAuthors
-            track.lyricists = trackForms[trackId].lyricists
-            track.phonogramProducers = trackForms[trackId].phonogramProducers
+            track.musicAuthorsNames = trackForms[trackId].musicAuthorsNames
+            track.lyricistsNames = trackForms[trackId].lyricistsNames
+            track.phonogramProducersNames = trackForms[trackId].phonogramProducersNames
         }
 
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
@@ -476,26 +495,19 @@ export default function AlbumReleaseRequest() {
         setTrackForms(newTrackForms);
     }
 
-    function fileToByteArray(file: File): Promise<Uint8Array> {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                if (event.target?.result instanceof ArrayBuffer) {
-                    const arrayBuffer = event.target.result;
-                    const byteArray = new Uint8Array(arrayBuffer);
-                    resolve(byteArray);
-                } else {
-                    reject(new Error('Failed to read file as ArrayBuffer.'));
-                }
-            };
-
-            reader.onerror = (event) => {
-                reject(new Error('Failed to read file: ' + event.target?.error));
-            };
-
-            reader.readAsArrayBuffer(file);
-        });
+    const flushForm = () => {
+        setReleasePerformers("")
+        setReleaseTitle("")
+        setReleaseVersion("")
+        setReleaseGenre("")
+        setReleaseCoverFile(undefined)
+        setReleaseUPC("")
+        setReleaseSource("")
+        setDefaultTrackPerformers("")
+        setTrackForms([defaultTrack])
+        setInvalidFieldKeys(new Set())
+        flushPassportInvalidKeys()
+        setAuthors([])
     }
 
     const err_notificate = () => {
@@ -509,8 +521,6 @@ export default function AlbumReleaseRequest() {
             return
         }
 
-        const formData = new FormData()
-
         if (releasePerformers === "") {
             err_notificate()
             return
@@ -519,32 +529,54 @@ export default function AlbumReleaseRequest() {
             err_notificate()
             return
         }
-        if (releaseVersion === "") {
-            // not required
-        }
         if (releaseCoverFile === undefined) {
             err_notificate()
             return
         }
 
-        const coverFileBytes = String(await fileToByteArray(releaseCoverFile))
+        const authorsToSend: Author[] = []
 
-        formData.append(`releasePerformers`, releasePerformers)
-        formData.append(`releaseTitle`, releaseTitle)
-        formData.append(`releaseVersion`, releaseVersion)
-        formData.append(`releaseGenre`, releaseGenre)
-        formData.append(`releaseCoverFile`, coverFileBytes)
+        if (authorIsSolo !== true) {
+            for (let author of authors) {
 
-        for (let track of trackForms) {
+                let authorToSend: Author | null = null
+
+                if (author.docs !== null && author.file === null) {
+                    authorToSend = {
+                        fullName: author.fullName,
+                        data: author.docs,
+                    }
+                } else if (author.docs === null && author.file !== null) {
+                    const authorFileId = await uploadFile(author.file)
+                    authorToSend = {
+                        fullName: author.fullName,
+                        data: authorFileId,
+                    }
+                } else {
+                    alert('Заполните документы добавленных авторов')
+                    console.log(authors)
+                    return
+                }
+
+                authorsToSend.push(authorToSend)
+            }
+        }
+
+        const tracks: BackCatalogTrackUpload[] = []
+
+        for (let [index, track] of trackForms.entries()) {
+
+            let textFileId = null
+            let wavFileId = null
+
             if (track.wavFile === undefined) {
                 alert("Прикрепите wavFile")
-                break
+                return
+            } else {
+                wavFileId = await uploadFile(track.wavFile)
             }
-            const trackWavFileBytes = String(await fileToByteArray(track.wavFile))
-
-            let trackTextFileBytes = ''
             if (track.textFile !== undefined) {
-                trackTextFileBytes = String(await fileToByteArray(track.textFile))
+                textFileId = await uploadFile(track.textFile)
             }
 
             if (track.performers === "") {
@@ -559,39 +591,772 @@ export default function AlbumReleaseRequest() {
                 err_notificate()
                 break
             }
-            if (track.musicAuthors === "") {
+            if (track.musicAuthorsNames === "") {
                 err_notificate()
                 break
             }
-            if (track.phonogramProducers === "") {
+            if (track.phonogramProducersNames === "") {
                 err_notificate()
                 break
             }
 
-            formData.append(`${trackForms.indexOf(track)}-track-performers`, track.performers)
-            formData.append(`${trackForms.indexOf(track)}-track-title`, track.title)
-            formData.append(`${trackForms.indexOf(track)}-track-version`, track.version)
-            formData.append(`${trackForms.indexOf(track)}-track-explicit`, String(track.explicit))
-            formData.append(`${trackForms.indexOf(track)}-track-preview`, track.preview)
-            formData.append(`${trackForms.indexOf(track)}-track-isCover`, String(track.isCover))
-            formData.append(`${trackForms.indexOf(track)}-track-wavFile`, trackWavFileBytes)
-            formData.append(`${trackForms.indexOf(track)}-track-textFile`, trackTextFileBytes)
-            formData.append(`${trackForms.indexOf(track)}-track-performersNames`, track.performersNames)
-            formData.append(`${trackForms.indexOf(track)}-track-musicAuthors`, track.musicAuthors)
-            formData.append(`${trackForms.indexOf(track)}-track-lyricists`, track.lyricists)
-            formData.append(`${trackForms.indexOf(track)}-track-phonogramProducers`, track.phonogramProducers)
+            const trackData: BackCatalogTrackUpload = {
+                performers: track.performers,
+                title: track.title,
+                version: track.version,
+                explicit: track.explicit,
+                preview: track.preview,
+                isCover: track.isCover,
+                performersNames: track.performersNames,
+                musicAuthorsNames: track.musicAuthorsNames,
+                lyricistsNames: track.lyricistsNames,
+                phonogramProducersNames: track.phonogramProducersNames,
+                isrc: track.isrc,
+                wavFileId: wavFileId,
+                textFileId: textFileId,
+            }
+
+            tracks.push(trackData)
+        }
+
+        const coverFileId = await uploadFile(releaseCoverFile)
+
+        const backCatalogRelease: BackCatalogReleaseUpload = {
+            performers: releasePerformers,
+            title: releaseTitle,
+            version: releaseVersion,
+            genre: releaseGenre,
+            upc: releaseUPC,
+            date: releaseDate,
+            source: releaseSource,
+            tracks: tracks,
+            coverFileId: coverFileId,
         }
         try {
-            submit(formData, { method: 'post', action: '/request/back-catalog' });
+            setModalIsOpened(true)
+            const response = await uploadBackCatalogReleaseRequest(
+                userId, 
+                backCatalogRelease, 
+                authorsToSend
+            )
+            if (response === 200) {
+                setModalIsOpened(false)
+                flushForm()
+            }
         } catch (error) {
             // Handle network errors
             console.error('Network error:', error);
         }
     }
-    console.log('invalidFieldKeys', invalidFieldKeys)
+
+    const flushPassportInvalidKeys = () => {
+        let newInvalidFieldKeys = new Set(invalidFieldKeys);
+        newInvalidFieldKeys.forEach((item) => {
+            if (item.includes('passport-')) {
+                newInvalidFieldKeys.delete(item);
+            }
+        });
+        setInvalidFieldKeys(newInvalidFieldKeys);
+    }
+
+    const handleDeleteAuthor = (index: number) => {
+        const newAuthorsState = [...authors]
+        newAuthorsState.splice(index, 1)
+        setAuthors(newAuthorsState)
+    }
+
+    const handleAddAuthor = () => {
+        if (!fullNameToAddValidity || fullNameToAdd === "") {
+            return
+        }
+        const newAuthorsState = [...authors]
+        newAuthorsState.push({
+            fullName: fullNameToAdd,
+            docs: null,
+            file: null
+        })
+        setAuthors(newAuthorsState)
+        setFullNameToAdd('')
+        setFullNameToAddValidity(true)
+    }
+
+    const handleChangeCurrentPassport = (fieldName: keyof RuPassportData | keyof KzPassportData | keyof ByPassportData | keyof ForeignPassportData, value: string) => {
+        const currentPassport = authorDocsForm.passport
+        const passportType = authorDocsForm.passportType
+
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+
+        let newPassport = { ...currentPassport }
+
+        if (passportType === 'ru') {
+            let isValid = true
+            const newRuPassport = { ...currentPassport } as RuPassportData
+            const ruFieldName = fieldName as keyof RuPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = tenDigitsRePattern.test(value) || value === ''
+                console.log('value', value, 'pattern', tenDigitsRePattern, isValid)
+            } else if (fieldName === 'code') {
+                isValid = sixDigitsRePattern.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+            newRuPassport[ruFieldName] = value
+            newPassport = newRuPassport
+
+        } else if (passportType === 'kz') {
+            let isValid = true
+            const newKzPassport = { ...currentPassport } as KzPassportData
+            const kzFieldName = fieldName as keyof KzPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = kzPassportNumberRePattern.test(value) || value === ''
+            } else if (fieldName === 'idNumber') {
+                isValid = /^d{12}&/.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+
+            newKzPassport[kzFieldName] = value
+            newPassport = newKzPassport
+
+        } else if (passportType === 'by') {
+            let isValid = true
+            const newByPassport = { ...currentPassport } as ByPassportData
+            const byFieldName = fieldName as keyof ByPassportData
+
+            if (fieldName === 'fullName') {
+                isValid = fullNameRePattern.test(value) || value === ''
+            } else if (fieldName === 'number') {
+                isValid = byPassportNumberRePattern.test(value) || value === ''
+            }
+
+            if (!isValid) {
+                newInvalidFieldKeys.add(`passport-${fieldName}`)
+            } else {
+                newInvalidFieldKeys.delete(`passport-${fieldName}`)
+            }
+
+            newByPassport[byFieldName] = value
+            newPassport = newByPassport
+
+        } else if (passportType === 'foreign') {
+            const newForeignPassport = { ...currentPassport } as ForeignPassportData
+            const foreignFieldName = fieldName as keyof ForeignPassportData
+
+            newForeignPassport[foreignFieldName] = value
+            newPassport = newForeignPassport
+        }
+        setAuthorDocsForm({ ...authorDocsForm, passport: newPassport })
+        setInvalidFieldKeys(newInvalidFieldKeys)
+        console.log(invalidFieldKeys)
+    }
+
+    const handleChangeCurrentPassportType = (value: 'ru' | 'kz' | 'by' | 'foreign') => {
+        let newPassport: RuPassportData | KzPassportData | ByPassportData | ForeignPassportData | undefined = undefined
+
+        const fullName = authors[editableAuthorIndex!].fullName
+
+        if (value === 'ru') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                code: "",
+                registrationDate: "",
+            } as RuPassportData
+
+        } else if (value === 'kz') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                idNumber: "",
+                issuedBy: "",
+                issueDate: "",
+                endDate: "",
+                registrationAddress: "",
+            } as KzPassportData
+
+        } else if (value === 'by') {
+            newPassport = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                registrationAddress: "",
+            } as ByPassportData
+
+        } else {
+            newPassport = {
+                fullName: fullName,
+                citizenship: "",
+                birthDate: "",
+                number: "",
+                idNumber: "",
+                issuedBy: "",
+                issueDate: "",
+                endDate: "",
+                registrationAddress: "",
+            } as ForeignPassportData
+        }
+        const newAuthorDocsForm = { ...authorDocsForm, passport: newPassport, passportType: value }
+        flushPassportInvalidKeys()
+        setAuthorDocsForm(newAuthorDocsForm)
+    }
+
+    const handleChangeAuthorFile = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+        const newAuthors = [...authors]
+        const file = event.target.files?.[0]
+        if (file === undefined) {
+            return
+        }
+        newAuthors[index].file = file
+        setAuthors(newAuthors)
+    }
+
+    const handleOpenAuthorsDocs = (index: number) => {
+        const currentAuthor = authors[index]
+        const authorDocs = currentAuthor.docs
+        const fullName = currentAuthor.fullName
+
+        if (authorDocs === null) {
+            const emptyRuPassport: RuPassportData = {
+                fullName: fullName,
+                birthDate: "",
+                number: "",
+                issuedBy: "",
+                issueDate: "",
+                code: "",
+                registrationDate: "",
+            }
+            const newAuthorDocs: AuthorDocs = {
+                passport: emptyRuPassport,
+                paymentType: "royalty",
+                paymentValue: "",
+                licenseOrAlienation: true,
+                passportType: "ru",
+            }
+            setAuthorDocsForm(newAuthorDocs)
+        } else {
+            setAuthorDocsForm(authorDocs)
+        }
+        setEditableAuthorIndex(index)
+    }
+
+    const handleSaveAuthorDocs = () => {
+        let formFilled = true
+        invalidFieldKeys.forEach(element => {
+            if (element.includes('passport-')) {
+                formFilled = false
+            }
+        });
+        if (authorDocsForm.paymentValue === '' && authorDocsForm.paymentType !== 'free') {
+            formFilled = false
+        }
+        Object.values(authorDocsForm.passport).forEach(element => {
+            if (element === '') {
+                formFilled = false
+            }
+        })
+        if (!formFilled) {
+            alert("Заполните все поля добавляемого документа.")
+            return
+        }
+        const newAuthorsState = [...authors]
+        newAuthorsState[editableAuthorIndex!].docs = authorDocsForm
+        setAuthors(newAuthorsState)
+        setEditableAuthorIndex(null)
+    }
+
+    const renderAuthors = (): JSX.Element => {
+
+        if (authorIsSolo) {
+            return (<></>)
+        } else {
+            return (
+                <>
+                    {
+                        (authors.length > 0) && authors.map((author, index) => (
+                            <div key={index} className="author-row">
+                                <div className="full-name">
+                                    <span className="name" >{author.fullName}</span>
+                                </div>
+                                <div className="buttons-container">
+                                    {author.file ? (<></>) : (
+                                        <svg onClick={() => {
+                                            handleOpenAuthorsDocs(index)
+
+                                        }} className='track-controls' width="33" height="33" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M14.9997 8.33326L11.6664 4.99993M2.08301 17.9166L4.90331 17.6032C5.24789 17.5649 5.42018 17.5458 5.58121 17.4937C5.72408 17.4474 5.86005 17.3821 5.98541 17.2994C6.12672 17.2062 6.2493 17.0836 6.49445 16.8385L17.4997 5.83326C18.4202 4.91279 18.4202 3.4204 17.4997 2.49993C16.5792 1.57945 15.0868 1.57945 14.1664 2.49992L3.16112 13.5052C2.91596 13.7503 2.79339 13.8729 2.70021 14.0142C2.61753 14.1396 2.55219 14.2755 2.50594 14.4184C2.4538 14.5794 2.43466 14.7517 2.39637 15.0963L2.08301 17.9166Z" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    )}
+                                    {author.docs ? (<></>) : (
+                                        <div style={{position: 'relative'}}>
+                                            <input onChange={(e) => handleChangeAuthorFile(index, e)} className="full-cover" type="file"></input>
+                                            <svg className='track-controls' width="33" height="33" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <svg onClick={() => handleDeleteAuthor(index)} className='track-controls' width="33" height="33" viewBox="0 0 33 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.6667 2H21.3333M2 6.83333H31M27.7778 6.83333L26.6479 23.7811C26.4784 26.3238 26.3937 27.5952 25.8445 28.5592C25.361 29.4079 24.6317 30.0902 23.7527 30.5162C22.7543 31 21.4801 31 18.9317 31H14.0683C11.5199 31 10.2457 31 9.24732 30.5162C8.36833 30.0902 7.63903 29.4079 7.15553 28.5592C6.60635 27.5952 6.52159 26.3238 6.35207 23.7811L5.22222 6.83333M13.2778 14.0833V22.1389M19.7222 14.0833V22.1389" stroke="white" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                        )
+                        )
+                    }
+                </>
+            )
+        }
+
+    }
+
+    const renderPassport = (): JSX.Element => {
+
+        const passportType = authorDocsForm.passportType
+        const passportData = authorDocsForm.passport
+
+        let passportSection = <></>
+
+        if (passportType === 'ru') {
+            const ruPassport = passportData as RuPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={ruPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Серия и номер</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                                {...invalidFieldKeys.has('passport-issuedBy') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Код подразделения</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.code}
+                                onChange={(event) => handleChangeCurrentPassport('code', event.target.value)}
+                                {...invalidFieldKeys.has('passport-code') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата регистрации</label>
+                            <input
+
+                                className="field"
+                                value={ruPassport.registrationDate}
+                                type={"date"}
+                                onChange={(event) => handleChangeCurrentPassport('registrationDate', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+            )
+        } else if (passportType === 'kz') {
+            const kzPassport = passportData as KzPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={kzPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={kzPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={kzPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер ID</label>
+                            <input
+                                className="field"
+                                value={kzPassport.idNumber}
+                                onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
+                                {...invalidFieldKeys.has('passport-idNumber') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={kzPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={kzPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата окончания</label>
+                            <input
+                                className="field"
+                                value={kzPassport.endDate}
+                                onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={kzPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        } else if (passportType === 'by') {
+            const byPassport = passportData as ByPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={byPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                                {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={byPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={byPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                                {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={byPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={byPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={byPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        } else if (passportType === 'foreign') {
+            const foreignPassport = passportData as ForeignPassportData
+            passportSection = (
+                <div className="passport-section">
+                    <div className="passport-fields">
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">ФИО</label>
+                            <input
+                                disabled={true}
+                                className="field"
+                                value={foreignPassport.fullName}
+                                onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Гражданство</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.citizenship}
+                                onChange={(event) => handleChangeCurrentPassport('citizenship', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата рождения</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.birthDate}
+                                onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер паспорта</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.number}
+                                onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Номер ID</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.idNumber}
+                                onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Кем выдан</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issuedBy}
+                                onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата выдачи</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Дата окончания</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.issueDate}
+                                onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
+                                type={"date"}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Адрес регистрации</label>
+                            <input
+                                className="field"
+                                value={foreignPassport.registrationAddress}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <div className="bubble" style={{ width: '60%' }}>
+                        <span className="label">ПАСПОРТНЫЕ ДАННЫЕ </span>
+
+                        <select
+                            value={passportType}
+                            onChange={(e) => {
+                                handleChangeCurrentPassportType(e.target.value as 'ru' | 'kz' | 'by' | 'foreign');
+                            }}
+                        >
+                            <option value="ru">РФ</option>
+                            <option value="kz">КЗ</option>
+                            <option value="by">РБ</option>
+                            <option value="foreign">ИНОСТРАННЫЙ</option>
+                        </select>
+
+                    </div>
+                    <span style={{ color: '#fff', fontFamily: 'Montserrat', fontSize: '26px', fontStyle: 'normal', fontWeight: '700', lineHeight: '10px' }} onClick={() => setEditableAuthorIndex(null)}>X</span>
+                </div>
+                {passportSection}
+            </>
+        )
+    }
+
+    const renderDocsForm = (): JSX.Element => {
+        if (editableAuthorIndex == null) {
+            return <></>
+        }
+
+        return (
+            <div className="docs-section">
+                {renderPassport()}
+                <div style={{ marginTop: '6vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
+                        <div className="responsive-selector-field" style={{ margin: '0' }} onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: !authorDocsForm.licenseOrAlienation })}>
+                            <span className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
+                            <span className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
+                        </div>
+                    </div >
+                    <div style={{ height: '3.17vh', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
+                        <select
+                            style={{ border: '1px solid white', paddingLeft: '2vh', height: '3vh', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
+                            value={authorDocsForm.paymentType}
+                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e.target.value as 'royalty' | 'free' | 'sum' | 'other' })}
+                        >
+                            <option value="royalty">РОЯЛТИ</option>
+                            <option value="free">БЕЗВОЗМЕЗДНО</option>
+                            <option value="sum">ФИКС. СУММА</option>
+                            <option value="other">ДРУГОЕ</option>
+                        </select>
+                        {authorDocsForm.paymentType == 'free' ? (<></>) : (
+                            <input
+                                value={authorDocsForm.paymentValue || ''}
+                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
+                                style={{ padding: '6px', paddingLeft: '0.5vw', width: 'calc(11.51vw - 6px)', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                            ></input>
+                        )}
+
+                    </div>
+                </div>
+                <div style={{ marginTop: '3vh', display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <button onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                </div>
+            </div>
+        )
+    }
+
+    const renderDocsSection = (): JSX.Element => {
+        return (
+            <>
+                <div style={{ width: '100vw', height: '4.58vh', backgroundColor: '#ffffff26', marginTop: '6vh', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ АВТОРОВ</span>
+                </div>
+
+                <div onClick={() => setAuthorIsSolo(!authorIsSolo)} style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
+                    <span className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0">АРТИСТ АВТОР ВСЕГО /</span>
+                    <span className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0"> АВТОРОВ НЕСКОЛЬКО</span>
+                </div>
+
+
+                {editableAuthorIndex === null && renderAuthors()}
+                {(editableAuthorIndex !== null || authorIsSolo) ? (<></>) : (
+                    <div className="author-row">
+                        <div className="full-name-container">
+                            <input className="full-name add" value={fullNameToAdd} style={{ border: !fullNameToAddValidity ? '1px solid red' : 'none' }} onChange={(e) => {
+                                const fullName = e.target.value
+                                const isValid = fullNamesRePattern.test(fullName) || fullName === ''
+                                setFullNameToAddValidity(isValid)
+                                setFullNameToAdd(fullName)
+                            }} placeholder="ФИО" />
+                        </div>
+
+                        <div className="buttons-container">
+                            <svg onClick={fullNameToAddValidity ? (() => handleAddAuthor()) : () => { }} className='track-controls' width="33" height="33" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 15.5H7.5C6.10444 15.5 5.40665 15.5 4.83886 15.6722C3.56045 16.06 2.56004 17.0605 2.17224 18.3389C2 18.9067 2 19.6044 2 21M19 21V15M16 18H22M14.5 7.5C14.5 9.98528 12.4853 12 10 12C7.51472 12 5.5 9.98528 5.5 7.5C5.5 5.01472 7.51472 3 10 3C12.4853 3 14.5 5.01472 14.5 7.5Z" stroke="white" stroke-opacity="0.4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                    </div>
+
+                )}
+                {(editableAuthorIndex !== null && !authorIsSolo) && renderDocsForm()}
+            </>
+        )
+    }
 
     return (
         <div className="request-container">
+
+            {modalIsOpened && (
+                <div className="overlay">
+                    <div className="modal">
+                        <span>Загрузка</span>
+                    </div>
+                </div>
+            )}
 
             {/* release fields */}
             <div className="row-fields">
@@ -660,11 +1425,11 @@ export default function AlbumReleaseRequest() {
                     <label className="input genre">ЖАНР*</label>
                     <select
                         value={releaseGenre}
-                        onChange={handleChangeReleaseGenre}
+                        onChange={handleChangeReleaseGenre as any}
                         required={true}
                         className="input"
                     >
-                        <option value={"Жанр 1"}>Жанр 1</option>
+                        <ReleaseGenreOptions />
                     </select>
                 </div>
 
@@ -701,11 +1466,10 @@ export default function AlbumReleaseRequest() {
                     <div className="back-catalog-field">
                         <label className="input">ДАТА РЕЛИЗА: </label>
                         <input
+                            type="date"
                             value={releaseDate}
                             onChange={handleChangeReleaseDate}
-                            {...invalidFieldKeys.has(`release-date`) ? { style: { border: "1px solid red" } } : null}
                             className="back-catalog"
-                            placeholder="00.00.0000"
                         />
                     </div>
 
@@ -893,7 +1657,7 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
                                     <input
-                                        value={trackForm.musicAuthors}
+                                        value={trackForm.musicAuthorsNames}
                                         onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
@@ -906,7 +1670,7 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
                                     <input
-                                        value={trackForm.lyricists}
+                                        value={trackForm.lyricistsNames}
                                         onChange={(e) => handleChangeTrackLyricists(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
@@ -919,7 +1683,7 @@ export default function AlbumReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
                                     <input
-                                        value={trackForm.phonogramProducers}
+                                        value={trackForm.phonogramProducersNames}
                                         onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
@@ -941,11 +1705,11 @@ export default function AlbumReleaseRequest() {
                         <div className="back-catalog-field" style={{ marginTop: "2vh" }}>
                             <label className="input">ISRC: </label>
                             <input
-                            value={trackForm.ISRC}
-                            onChange={(e) => handleChangeTrackISRC(e, index)}
-                            {...invalidFieldKeys.has(`${index}-track-ISRC`) ? { style: { border: "1px solid red" } } : null}
-                            className="back-catalog" 
-                            placeholder="000000000000" 
+                                value={trackForm.isrc}
+                                onChange={(e) => handleChangeTrackISRC(e, index)}
+                                {...invalidFieldKeys.has(`${index}-track-ISRC`) ? { style: { border: "1px solid red" } } : null}
+                                className="back-catalog"
+                                placeholder="000000000000"
                             />
                         </div>
 
@@ -953,6 +1717,7 @@ export default function AlbumReleaseRequest() {
                 )
             })}
 
+            {renderDocsSection()}
 
             <div className="submit-container">
 

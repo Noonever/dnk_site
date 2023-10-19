@@ -3,7 +3,7 @@ import { Form } from "@remix-run/react";
 import { json, redirect } from "@remix-run/node";
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 
-import { createUserSession, getUserId } from "~/utils/session.server";
+import { createUserSession, getUserName } from "~/utils/session.server";
 import { verifyLogin } from "~/backend/user";
 
 import styles from '~/styles/login.css'
@@ -14,7 +14,7 @@ export const links = () => {
 }
 
 export async function loader({ request }: LoaderArgs) {
-    const userId = await getUserId(request);
+    const userId = await getUserName(request);
     if (userId) return redirect("/me");
     return json({});
 }
@@ -25,13 +25,15 @@ export async function action({ request }: ActionArgs) {
     const password = formData.get("password");
 
     const user = await verifyLogin(String(email), String(password));
-    if (!user) return null;
+    if (!user) {
+        return Error("Invalid login");
+    }
     // TODO: unsuccessful login
     // If no user is returned, return the error
     
     return createUserSession({
         request,
-        userId: user.id,
+        userName: user.username,
     });
 }
 

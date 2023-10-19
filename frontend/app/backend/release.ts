@@ -1,30 +1,106 @@
 import fastAPI from "./fastapi";
+import type { Author } from "~/types/author";
+import type { NewMusicReleaseUpload, ClipReleaseUpload, BackCatalogReleaseUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
 
-export async function uploadSingleRequest(data: FormData) {
-    console.log('backend mock')
-    const records = Object.fromEntries(data)
+
+export async function uploadNewMusicReleaseRequest(
+    username: string,
+    releaseData: NewMusicReleaseUpload,
+    authors: Author[],
+) {
+    const release = {
+        username: username,
+        type: 'new-music',
+        data: releaseData,
+        authors: authors
+    }
+
+    try {
+        await fastAPI.post(`/release/request`, release)
+        return 200
+    } catch (error) {
+        console.error('Release upload error:', error);
+    }
+}
+
+export async function uploadClipReleaseRequest(
+    username: string,
+    releaseData: ClipReleaseUpload,
+    authors: Author[]
+) {
+    const release = {
+        username: username,
+        type: 'clip',
+        data: releaseData,
+        authors: authors
+    }
+
+    try {
+        await fastAPI.post(`/release/request`, release)
+        return 200
+    } catch (error) {
+        console.error('Release upload error:', error);
+    }
+}
+
+export async function uploadBackCatalogReleaseRequest(
+    username: string,
+    releaseData: BackCatalogReleaseUpload,
+    authors: Author[]
+) {
+    const release = {
+        username: username,
+        type: 'back-catalog',
+        data: releaseData,
+        authors: authors
+    }
     
-    const coverFile = data.get('cover') 
-    console.log('a', a)
-    console.log('records', records)
+    try {
+        await fastAPI.post(`/release/request`, release)
+        return 200
+    } catch (error) {
+        console.error('Release upload error:', error);
+    }
 }
 
-export async function uploadAlbumRequest(data: Record<string, string>) {
-    console.log('backend mock')
-    console.log('data', data)
-    const records = Object.fromEntries(data)
-    console.log('records', records)
-    // TODO: sync with backend
+
+export async function getReleaseRequests(): Promise<ReleaseRequest[]> {
+    try {
+        const response = await fastAPI.get('/release/requests')
+        const requests: ReleaseRequest[] = response.data
+        return requests
+    } catch (error) {
+        console.error('Releases get error:', error);
+        return []
+    }
 }
 
-export async function uploadClipRequest(data: Record<string, string>) {
-    console.log('backend mock')
-    console.log('data', data)
-    // TODO: sync with backend
+export async function getReleaseRequest(id: string): Promise<ReleaseRequest | null> {
+    try {
+        const response = await fastAPI.get(`/release/request/`, { params: { id } })
+        return response.data
+    } catch (error) {
+        console.error('Release get error:', error);
+        return null
+    }
 }
 
-export async function uploadBackCatalogRequest(data: Record<string, string>) {
-    console.log('backend mock')
-    console.log('data', data)
-    // TODO: sync with backend    
+export async function updateReleaseRequest(id: string, data: ReleaseRequestUpdate): Promise<ReleaseRequest | null> {
+    try {
+        const response = await fastAPI.put(`/release/request/`, data, { params: { id } })
+        return response.data
+    } catch (error) {
+        console.error('Release update error:', error);
+        return null
+    }
+}
+
+export async function addReleaseRequestToDeliveryTable(id: string): Promise<number | null> {
+    try {
+        const response = await fastAPI.post(`/release/add-to-docs/`, {}, { params: {id} })
+        return response.status
+    } catch (error) {
+        console.error('Release docs add error:', error);
+        return null
+    }
 }

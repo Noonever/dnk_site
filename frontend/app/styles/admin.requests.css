@@ -34,7 +34,7 @@ label.input {
 }
 
 input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.391)
 }
 
 label.downgap {
@@ -44,6 +44,11 @@ label.downgap {
 label.shifted {
     margin-left: 2vw;
     padding-bottom: 1vh;
+}
+
+label.bold {
+    font-weight: bold;
+    font-size: 20px;
 }
 
 input.field {
@@ -93,4 +98,25 @@ a.full-cover {
     font-weight: 700;
     line-height: 10px;
     /* 50% */
+}
+
+svg.track-controls {
+    margin-top: 2.2vh;
+}
+
+svg.track-controls-first {
+    margin-top: 3.9vh;
+}
+
+input.field.pending {
+    background-color: rgba(255, 255, 0, 0.13);
+}
+
+input.field.accepted {
+    background-color: rgba(0, 255, 0, 0.13);
+}
+
+input.field.error {
+    background-color: rgba(255, 0, 0, 0.13);
+    color: rgba(0, 0, 0, 0.385)
 }

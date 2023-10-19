@@ -1,58 +1,50 @@
 import { useState } from "react";
-import type { ActionFunctionArgs, LinksFunction, MetaFunction } from "@remix-run/node";
 
-import { useSubmit } from "@remix-run/react";
-import { uploadClipRequest } from "~/backend/release";
+import { uploadFile } from "~/backend/file";
+import { updateReleaseRequest } from "~/backend/release";
 
-export const meta: MetaFunction = () => {
-    return [
-        { title: "DNK | Заявка | Видеоклип" },
-        { name: "description", content: "Добро пожаловать в DNK" },
-    ];
-};
+import type { ClipReleaseUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
 
-export async function action({ request }: ActionFunctionArgs) {
-    const formData = await request.formData()
-    let data = Object.fromEntries(formData);
-    await uploadClipRequest(data)
-    return new Response('OK', { status: 200 });
-}
+import ReleaseGenreOptions from "./release-genres";
+import { fullNamesRePattern, multipleNicknamesRePattern, linkRePattern } from "~/utils/regexp";
 
-export default function SingleReleaseRequest() {
-    const submit = useSubmit();
-
-    const [releasePerformers, setReleasePerformers] = useState("");
-    const [releaseTitle, setReleaseTitle] = useState("");
-    const [releaseVersion, setReleaseVersion] = useState("");
-    const [releaseGenre, setReleaseGenre] = useState("Жанр 1");
-    const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
-    const [releaseLink, setReleaseLink] = useState("")
-
-    const defaultClip: {
-        performersNames: string,
-        musicAuthors: string,
-        lyricists: string,
-        phonogramProducers: string,
-        directorsNames: string,
-    } = {
-        performersNames: "",
-        musicAuthors: "",
-        lyricists: "",
-        phonogramProducers: "",
-        directorsNames: "",
+export default function ClipReleaseSection(
+    props: {
+        request: ReleaseRequest,
     }
+) {
 
-    const [clipForms, setClipForms] = useState([
-        defaultClip,
+    const request = props.request
+    const data: ClipReleaseUpload = request.data as ClipReleaseUpload;
+
+    const [releaseDate, setReleaseDate] = useState(request.date);
+    const [releaseImprint, setReleaseImprint] = useState(request.imprint);
+
+    const [releasePerformers, setReleasePerformers] = useState(data.performers);
+    const [releaseTitle, setReleaseTitle] = useState(data.title);
+    const [releaseVersion, setReleaseVersion] = useState(data.version);
+    const [releaseGenre, setReleaseGenre] = useState(data.genre);
+    const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
+    const [releaseLink, setReleaseLink] = useState(data.releaseLink)
+
+    const [clipForms, setClipForms] = useState<{
+        performersNames: string,
+        musicAuthorsNames: string,
+        lyricistsNames: string,
+        phonogramProducersNames: string,
+        directorsNames: string,
+    }[]>([
+        {
+            performersNames: data.performersNames,
+            musicAuthorsNames: data.musicAuthorsNames,
+            lyricistsNames: data.lyricistsNames,
+            phonogramProducersNames: data.phonogramProducersNames,
+            directorsNames: data.directorsNames,
+        }
     ]);
 
-    const [userAgreed, setUserAgreed] = useState(false)
-
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
-
-    const fullNamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const multipleNicknamesRePattern = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/
-    const linkRePattern = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/
+    const [modalIsOpened, setModalIsOpened] = useState(false);
 
     // release fields
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,7 +146,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-musicAuthors`)
         }
 
-        newTrackForms[trackId].musicAuthors = musicAuthors;
+        newTrackForms[trackId].musicAuthorsNames = musicAuthors;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -173,7 +165,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-lyricists`)
         }
 
-        newTrackForms[trackId].lyricists = lyricists;
+        newTrackForms[trackId].lyricistsNames = lyricists;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -191,7 +183,7 @@ export default function SingleReleaseRequest() {
             newInvalidFieldKeys.delete(`${trackId}-track-phonogramProducers`)
         }
 
-        newTrackForms[trackId].phonogramProducers = phonogramProducers;
+        newTrackForms[trackId].phonogramProducersNames = phonogramProducers;
 
         setInvalidFieldKeys(newInvalidFieldKeys)
         setClipForms(newTrackForms);
@@ -215,28 +207,6 @@ export default function SingleReleaseRequest() {
         setClipForms(newTrackForms);
     }
 
-    function fileToByteArray(file: File): Promise<Uint8Array> {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                if (event.target?.result instanceof ArrayBuffer) {
-                    const arrayBuffer = event.target.result;
-                    const byteArray = new Uint8Array(arrayBuffer);
-                    resolve(byteArray);
-                } else {
-                    reject(new Error('Failed to read file as ArrayBuffer.'));
-                }
-            };
-
-            reader.onerror = (event) => {
-                reject(new Error('Failed to read file: ' + event.target?.error));
-            };
-
-            reader.readAsArrayBuffer(file);
-        });
-    }
-
     const err_notificate = () => {
         alert('Заполните все обязательные поля')
     }
@@ -247,8 +217,6 @@ export default function SingleReleaseRequest() {
             alert("Некоторые поля заполнены некорректно")
             return
         }
-
-        const formData = new FormData()
 
         if (releasePerformers === "") {
             err_notificate()
@@ -263,36 +231,40 @@ export default function SingleReleaseRequest() {
             return
         }
 
-        const coverFileBytes = String(await fileToByteArray(releaseCoverFile))
+        const clip = clipForms[0]
 
-        formData.append(`releasePerformers`, releasePerformers)
-        formData.append(`releaseTitle`, releaseTitle)
-        formData.append(`releaseVersion`, releaseVersion)
-        formData.append(`releaseGenre`, releaseGenre)
-        formData.append(`releaseCoverFile`, coverFileBytes)
+        let coverFileId = data.coverFileId
 
-        for (let track of clipForms) {
-
-            if (track.performersNames === "") {
-                err_notificate()
-                break
-            }
-            if (track.musicAuthors === "") {
-                err_notificate()
-                break
-            }
-            if (track.phonogramProducers === "") {
-                err_notificate()
-                break
-            }
-
-            formData.append(`${clipForms.indexOf(track)}-track-performersNames`, track.performersNames)
-            formData.append(`${clipForms.indexOf(track)}-track-musicAuthors`, track.musicAuthors)
-            formData.append(`${clipForms.indexOf(track)}-track-lyricists`, track.lyricists)
-            formData.append(`${clipForms.indexOf(track)}-track-phonogramProducers`, track.phonogramProducers)
+        if (releaseCoverFile !== undefined) {
+            coverFileId = await uploadFile(releaseCoverFile)
         }
+
+        const clipRelease: ClipReleaseUpload = {
+            title: releaseTitle,
+            performers: releasePerformers,
+            version: releaseVersion,
+            genre: releaseGenre,
+            releaseLink: releaseLink,
+            performersNames: clip.performersNames,
+            musicAuthorsNames: clip.musicAuthorsNames,
+            lyricistsNames: clip.lyricistsNames,
+            phonogramProducersNames: clip.phonogramProducersNames,
+            directorsNames: clip.directorsNames,
+            coverFileId: coverFileId,
+        }
+
         try {
-            submit(formData, { method: 'post', action: '/request/video-clip' });
+            const updatingReleaseRequest: ReleaseRequestUpdate = {
+                date: releaseDate,
+                imprint: releaseImprint,
+                data: clipRelease,
+            }
+            setModalIsOpened(true)
+            const response = await updateReleaseRequest(request.id, updatingReleaseRequest)
+            if (response !== null) {
+                setModalIsOpened(false)
+                console.log(response)
+            }
         } catch (error) {
             // Handle network errors
             console.error('Network error:', error);
@@ -303,17 +275,23 @@ export default function SingleReleaseRequest() {
     return (
         <div className="request-container">
 
-            {/* release fields */}
-            <div className="row-fields">
+            {modalIsOpened && (
+                <div className="overlay">
+                    <div className="modal">
+                        <span>Загрузка</span>
+                    </div>
+                </div>
+            )}
+
+            <div className="release-container">
 
                 {/* release performers */}
                 <div className="row-field" >
-                    <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ</label>
                     <div className="row-field-input-container">
                         <input
                             value={releasePerformers}
                             onChange={handleChangeReleasePerformers}
-                            name="release-performers"
                             placeholder="Кобяков"
                             required={true}
                             id="left"
@@ -326,12 +304,11 @@ export default function SingleReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
+                    <label className="input shifted">НАЗВАНИЕ</label>
                     <div className="row-field-input-container">
                         <input
                             value={releaseTitle}
                             onChange={handleChangeReleaseTitle}
-                            name="release-title"
                             placeholder="Пушка"
                             required={true}
                             className="field release"
@@ -342,18 +319,39 @@ export default function SingleReleaseRequest() {
                 </div>
 
                 {/* release version */}
-                <div className="row-field" id="right">
+                <div className="row-field">
                     <label className="input shifted">ВЕРСИЯ</label>
                     <div className="row-field-input-container">
                         <input
-                            value={releaseVersion}
+                            value={releaseVersion? releaseVersion : ""}
                             onChange={handleChangeReleaseVersion}
-                            name="release-version"
                             placeholder="Remix"
-                            id="right"
                             className="field release"
                             {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
                             type="text"
+                        />
+                    </div>
+                </div>
+
+                <div className="row-field">
+                    <label className="input shifted">ДАТА РЕЛИЗА</label>
+                    <div className="row-field-input-container">
+                        <input
+                            value={releaseDate}
+                            onChange={(e) => setReleaseDate(e.target.value)}
+                            className="field release"
+                            type="date"
+                        />
+                    </div>
+                </div>
+                <div className="row-field">
+                    <label className="input shifted">ИМПРИНТ</label>
+                    <div className="row-field-input-container">
+                        <input
+                            value={releaseImprint}
+                            onChange={(e) => setReleaseImprint(e.target.value)}
+                            id='right'
+                            className="field release"
                         />
                     </div>
                 </div>
@@ -370,11 +368,11 @@ export default function SingleReleaseRequest() {
                     <label className="input genre">ЖАНР*</label>
                     <select
                         value={releaseGenre}
-                        onChange={handleChangeReleaseGenre}
+                        onChange={handleChangeReleaseGenre as any}
                         required={true}
                         className="input"
                     >
-                        <option value={"Жанр 1"}>Жанр 1</option>
+                        <ReleaseGenreOptions />
                     </select>
                 </div>
 
@@ -384,11 +382,11 @@ export default function SingleReleaseRequest() {
                     <label className="input cover">ОБЛОЖКА*</label>
                     {!releaseCoverFile ? (
                         <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="black" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     ) : (
                         <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="black" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     )}
                 </div>
@@ -430,7 +428,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
                                     <input
-                                        value={trackForm.musicAuthors}
+                                        value={trackForm.musicAuthorsNames}
                                         onChange={(e) => handleChangeClipMusicAuthors(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
@@ -443,7 +441,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
                                     <input
-                                        value={trackForm.lyricists}
+                                        value={trackForm.lyricistsNames}
                                         onChange={(e) => handleChangeClipLyricists(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
@@ -456,7 +454,7 @@ export default function SingleReleaseRequest() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
                                     <input
-                                        value={trackForm.phonogramProducers}
+                                        value={trackForm.phonogramProducersNames}
                                         onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
                                         className="track-field"
                                         {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
@@ -487,15 +485,8 @@ export default function SingleReleaseRequest() {
 
             <div className="submit-container">
 
-                <div className="agreement-container">
-                    <svg className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="30" height="30" viewBox="0 0 18 18" fill={userAgreed ? "green" : "none"} xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="black" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <a className="agreement" href="https://youtube.com"> Даю согласие на обработку персональных данных</a>
-                </div>
-
-                <div className="submit-button-container" style={!userAgreed ? { color: "none", pointerEvents: "none", opacity: 0.5, cursor: "not-allowed" } : {}}>
-                    <button onClick={handleSubmit} disabled={!userAgreed} className="submit">ОТПРАВИТЬ РЕЛИЗ</button>
+                <div className="submit-button-container">
+                    <button onClick={handleSubmit} className="submit">СОХРАНИТЬ</button>
                 </div>
 
             </div>
