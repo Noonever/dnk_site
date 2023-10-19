@@ -34,6 +34,7 @@ export async function createUserSession({
     const user = await getUserByUsername(username);
     console.log("CRETING USER SESSION FOR ")
     console.log(user)
+    console.log(request)
     return redirect(user?.isAdmin? "/admin/requests" : "/request", {
         headers: {
             "Set-Cookie": await sessionStorage.commitSession(session, {
