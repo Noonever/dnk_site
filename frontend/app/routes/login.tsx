@@ -32,6 +32,7 @@ export async function action({ request }: ActionArgs) {
     console.log("END VERFIGY LOGIN")
 
     console.log(user)
+    user.isVerified = true
     // TODO: unsuccessful login
     // If no user is returned, return the error
     
