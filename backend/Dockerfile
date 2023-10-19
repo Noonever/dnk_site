@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install -r req.txt
 
 # Run uvicorn when the container launches
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
