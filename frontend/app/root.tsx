@@ -22,18 +22,18 @@ export const links: LinksFunction = () => {
 
 export async function loader({ request }: LoaderArgs) {
     const user = await getUser(request);
-    // if (!user && !request.url.includes("/login")) {
-    //     return redirect("/login");
-    // }
+    if (!user && !request.url.includes("/login")) {
+        return redirect("/login");
+    }
 
-    // if (user !== null) {
-    //     if (user.isAdmin && !request.url.includes("admin")) {
-    //         return redirect("/admin");
-    //     }
-    //     if (!user.isAdmin && !request.url.includes("request")) {
-    //         return redirect("/request");
-    //     }
-    // }
+    if (user !== null) {
+        if (user.isAdmin && !request.url.includes("admin")) {
+            return redirect("/admin");
+        }
+        if (!user.isAdmin && !request.url.includes("request")) {
+            return redirect("/request");
+        }
+    }
 
     return json({
         user: user, currentPath: request.url,
