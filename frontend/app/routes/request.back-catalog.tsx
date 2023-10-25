@@ -48,7 +48,6 @@ export default function AlbumReleaseRequest() {
     const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
     const [releaseUPC, setReleaseUPC] = useState("")
     const [releaseDate, setReleaseDate] = useState("")
-    const [releaseSource, setReleaseSource] = useState("")
 
     const [defaultTrackPerformers, setDefaultTrackPerformers] = useState('')
 
@@ -202,21 +201,6 @@ export default function AlbumReleaseRequest() {
         const releaseDate = event.target.value
 
         setReleaseDate(releaseDate);
-    }
-
-    const handleChangeReleaseSource = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // validated
-        const releaseSource = event.target.value
-        const newInvalidFieldKeys = new Set(invalidFieldKeys)
-
-        if (!tenDigitsRePattern.test(releaseSource) && releaseSource !== '') {
-            newInvalidFieldKeys.add(`release-source`)
-        } else {
-            newInvalidFieldKeys.delete(`release-source`)
-        }
-
-        setReleaseSource(releaseSource);
-        setInvalidFieldKeys(newInvalidFieldKeys);
     }
 
     const handleChangeTrackPerformers = (event: React.ChangeEvent<HTMLInputElement>, trackId: number) => {
@@ -502,7 +486,6 @@ export default function AlbumReleaseRequest() {
         setReleaseGenre("")
         setReleaseCoverFile(undefined)
         setReleaseUPC("")
-        setReleaseSource("")
         setDefaultTrackPerformers("")
         setTrackForms([defaultTrack])
         setInvalidFieldKeys(new Set())
@@ -628,7 +611,6 @@ export default function AlbumReleaseRequest() {
             genre: releaseGenre,
             upc: releaseUPC,
             date: releaseDate,
-            source: releaseSource,
             tracks: tracks,
             coverFileId: coverFileId,
         }
@@ -1448,7 +1430,7 @@ export default function AlbumReleaseRequest() {
                     )}
                 </div>
                 {/* release back catalog */}
-                <div className='back-catalog-fields'>
+                <div className='back-catalog-fields' style={{height: 'auto'}}>
 
                     {/* Release UPC */}
                     <div className="back-catalog-field">
@@ -1470,18 +1452,6 @@ export default function AlbumReleaseRequest() {
                             value={releaseDate}
                             onChange={handleChangeReleaseDate}
                             className="back-catalog"
-                        />
-                    </div>
-
-                    {/* Release source */}
-                    <div className="back-catalog-field">
-                        <label className="input">ИСХОДНИКИ: </label>
-                        <input
-                            value={releaseSource}
-                            onChange={handleChangeReleaseSource}
-                            {...invalidFieldKeys.has(`release-source`) ? { style: { border: "1px solid red" } } : null}
-                            className="back-catalog"
-                            placeholder="000000000000"
                         />
                     </div>
 

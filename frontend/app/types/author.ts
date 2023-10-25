@@ -3,7 +3,7 @@ import type {KzPassportData, RuPassportData, ByPassportData, ForeignPassportData
 export interface AuthorDocs {
     licenseOrAlienation: boolean,
     paymentType: 'royalty' | 'free' | 'sum' | 'other',
-    paymentValue: string | null,
+    paymentValue: string,
     passportType: 'ru' | 'kz' | 'by' | 'foreign',
     passport: RuPassportData | KzPassportData | ByPassportData | ForeignPassportData
 }

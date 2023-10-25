@@ -8,6 +8,7 @@ import { requireUserName } from "~/utils/session.server";
 
 import type { UserData, RuPassportData, KzPassportData, ByPassportData, ForeignPassportData } from "~/types/user_data";
 import { getUserByUsername } from "~/backend/user";
+import CustomSelect from "~/components/select";
 
 const fullNameRePattern = /^([А-ЯЁ][а-яё]+) ([А-ЯЁ][а-яё]+) ([А-ЯЁ][а-яё]+)$/;
 const sixDigitsRePattern = /^\d{6}$/
@@ -1083,23 +1084,37 @@ export default function UserProfile() {
                 </div>
             </div> */}
             <div className="user-docs">
-                <div className="docs-section">
+                <div className="docs-section" style={!passportEditable ? { background: 'rgba(255, 255, 255, 0.28)', borderRadius: '30px' } : {}}>
                     <div style={{ display: 'flex', flexDirection: 'row' }}>
                         <div className="bubble">
                             <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
 
-                            <select
-                                value={currentPassportType}
-                                onChange={(e) => {
+                            <CustomSelect
+                                defaultValue={currentPassportType}
+                                onChange={(val) => {
                                     flushPassportInvalidKeys()
-                                    setCurrentPassportType(e.target.value as 'ru' | 'kz' | 'by' | 'foreign');
+                                    setCurrentPassportType(val as 'ru' | 'kz' | 'by' | 'foreign');
                                 }}
-                            >
-                                <option value="ru">РФ</option>
-                                <option value="kz">КЗ</option>
-                                <option value="by">РБ</option>
-                                <option value="foreign">ИНОСТРАННЫЙ</option>
-                            </select>
+                                options={[
+                                    {
+                                        label: 'РФ',
+                                        value: 'ru'
+                                    },
+                                    {
+                                        label: 'КЗ',
+                                        value: 'kz'
+                                    },
+                                    {
+                                        label: 'РБ',
+                                        value: 'by'
+                                    },
+                                    {
+                                        label: 'ИНОСТРАННЫЙ',
+                                        value: 'foreign'
+                                    },
+                                ]}
+                                disabled={!passportEditable}
+                            ></CustomSelect>
 
                             <svg onClick={() => setPassportEditable(!passportEditable)} className='icon' width="8%" height="60%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clipPath="url(#clip0_27_61)">
@@ -1114,7 +1129,9 @@ export default function UserProfile() {
                         </div>
                     </div>
 
+
                     {{ ru: ruPassportSection, kz: kzPassportSection, by: byPassportSection, foreign: foreignPassportSection }[currentPassportType]}
+
 
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: '2vh' }}>
 
@@ -1122,7 +1139,7 @@ export default function UserProfile() {
 
                         <div style={{ display: 'flex', flexDirection: 'row' }}>
                             <div className="bubble" style={{ marginRight: '1vw', position: 'relative' }}>
-                                <input type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
+                                <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
                                     ...prevState, // Spread the previous state
                                     firstPage: event.target.files[0]// Set the new value for secondPage
                                 }))} />
@@ -1140,7 +1157,7 @@ export default function UserProfile() {
                             </div>
                             <div className="bubble" style={{ position: 'relative' }}>
                                 <span>ПРОПИСКА</span>
-                                <input type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
+                                <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
                                     ...prevState, // Spread the previous state
                                     secondPage: event.target.files[0] // Set the new value for secondPage
                                 }))} />
@@ -1170,17 +1187,27 @@ export default function UserProfile() {
 
                             <span className="label">РЕКВИЗИТЫ</span>
 
-                            <select
-                                value={currentLegalEntityType}
-                                onChange={(e) => {
+                            <CustomSelect
+                                defaultValue={currentLegalEntityType}
+                                onChange={(val) => {
                                     flushLegalEntityInvalidKeys();
-                                    setCurrentLegalEntityType(e.target.value as 'individual' | 'self' | 'ooo');
+                                    setCurrentLegalEntityType(val as 'self' | 'individual' | 'ooo');
                                 }}
-                            >
-                                <option value="self">Самозанятый</option>
-                                <option value="individual">ИП</option>
-                                <option value="ooo">ООО</option>
-                            </select>
+                                options={[
+                                    {
+                                        value: 'self',
+                                        label: 'САМОЗАНЯТЫЙ'
+                                    },
+                                    {
+                                        value: 'individual',
+                                        label: 'ИП'
+                                    },
+                                    {
+                                        value: 'ooo',
+                                        label: 'ООО'
+                                    },
+
+                                ]}></CustomSelect>
 
                             <svg onClick={() => setLegalEntityEditable(!legalEntityEditable)} className='icon' width="8%" height="60%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clipPath="url(#clip0_27_61)">

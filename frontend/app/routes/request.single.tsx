@@ -21,6 +21,7 @@ import {
 } from "~/components/ui/tooltip"
 
 import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~/utils/regexp";
+import CustomSelect from "~/components/select";
 
 const fullNameRePattern = fullNamesRePattern
 const sixDigitsRePattern = /^\d{6}$/
@@ -1112,7 +1113,7 @@ export default function SingleReleaseRequest() {
         return (
             <div className="docs-section">
                 {renderPassport()}
-                <div style={{ marginTop: '6vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
                         <div className="responsive-selector-field" style={{ margin: '0' }} onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: !authorDocsForm.licenseOrAlienation })}>
@@ -1120,28 +1121,41 @@ export default function SingleReleaseRequest() {
                             <span className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
                         </div>
                     </div >
-                    <div style={{ height: '3.17vh', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
-                        <select
-                            style={{ border: '1px solid white', paddingLeft: '2vh', height: '3vh', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
-                            value={authorDocsForm.paymentType}
-                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e.target.value as 'royalty' | 'free' | 'sum' | 'other' })}
-                        >
-                            <option value="royalty">РОЯЛТИ</option>
-                            <option value="free">БЕЗВОЗМЕЗДНО</option>
-                            <option value="sum">ФИКС. СУММА</option>
-                            <option value="other">ДРУГОЕ</option>
-                        </select>
+                </div>
+                <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{display: 'flex', flexDirection: 'row'}}>
+                        <CustomSelect
+                            style={{ padding: '6px', paddingLeft: '0.5vw', paddingRight: '20px', height: '3vh', border: '1px solid white', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
+                            defaultValue={authorDocsForm.paymentType}
+                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e as 'royalty' | 'free' | 'sum' | 'other' })}
+                            options={[
+                                {
+                                    label: 'РОЯЛТИ',
+                                    value: 'royalty'
+                                },
+                                {
+                                    label: 'БЕЗВОЗМЕЗДНО',
+                                    value: 'free'
+                                },
+                                {
+                                    label: 'ФИКС. СУММА',
+                                    value: 'sum'
+                                },
+                                {
+                                    label: 'ДРУГОЕ',
+                                    value: 'other'
+                                },
+                            ]}
+                            round={true}></CustomSelect>
                         {authorDocsForm.paymentType == 'free' ? (<></>) : (
                             <input
-                                value={authorDocsForm.paymentValue == null ? '' : authorDocsForm.paymentValue}
-                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
-                                style={{ padding: '6px', paddingLeft: '0.5vw', width: 'calc(11.51vw - 6px)', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                                value={authorDocsForm.paymentValue}
+                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value.replace('%', '') })}
+                                style={{ padding: '6px', paddingLeft: '0.5vw', width: '5vw', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
                             ></input>
                         )}
-
                     </div>
-                </div>
-                <div style={{ marginTop: '3vh', display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+
                     <button onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
                 </div>
             </div>

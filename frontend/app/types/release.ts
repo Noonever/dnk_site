@@ -35,7 +35,6 @@ export interface BackCatalogReleaseUpload {
     genre: string;
     upc: string;
     date: string;
-    source: string;
     tracks: BackCatalogTrackUpload[];
     coverFileId: string;
 }

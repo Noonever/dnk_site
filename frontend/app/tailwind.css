@@ -103,9 +103,9 @@ body {
 header {
   display: flex;
   position: absolute;
+  width: calc(100vw - 10.3vw);
   top: 0;
   left: 0;
-  width: 89.7vw;
   height: 13.48vh;
   justify-content: space-between;
   align-items: center;
@@ -260,4 +260,118 @@ select option[selected] {
 
 * {
   box-sizing: content-box;
+}
+
+.custom-select {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: calc(100% - 2px);
+  justify-content: space-between;
+  width: 200px;
+  border: 1px solid #ccc;
+  background-color: #ffffff00;
+  border-radius: 30px;
+  cursor: pointer;
+  user-select: none;
+  color: #fff;
+  font-family: Montserrat;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 10px;
+  background-color: #ffffff26
+}
+
+.custom-select:hover {
+  background-color: #ffffff98;
+}
+
+.custom-select.disabled:hover {
+  background-color: #ffffff26;
+  cursor: default;
+}
+
+.select-header {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  padding-left: 10px;
+}
+
+.selected-value {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.dropdown-icon {
+  font-size: 12px;
+}
+
+.dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.options {
+  position: absolute;
+  padding-top: 5%;
+  padding-bottom: 5%;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  background-color: rgb(50, 50, 50);
+  border-radius: 0 0 4px 4px;
+  z-index: 1;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.options.round {
+  left: 9%;
+  width: 82%;
+}
+
+.custom-select.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.option {
+  padding: 10px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+  padding-left: 7%;
+}
+
+.option:hover {
+  background-color: #ffffff48;
+}
+
+.option.selected {
+  background-color: #d3d3d3;
+}
+
+/* Style the scrollbar (you can adjust this as needed) */
+.options::-webkit-scrollbar {
+  width: 12px;
+}
+
+.options::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 6px;
+}
+
+.options::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+.options::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}
+
+.options::-webkit-scrollbar-track:hover {
+  background-color: #d4d4d4;
 }
