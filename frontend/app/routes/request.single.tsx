@@ -199,7 +199,7 @@ export default function SingleReleaseRequest() {
         const file = event.target.files[0];
         const newTrackForms = [...trackForms];
 
-        if (file.type !== "audio/wav") {
+        if (file.type !== "audio/wav" && file.type !== "audio/x-wav") {
             newTrackForms[trackId].wavFile = undefined
             alert("Неверный формат файла");
         } else {
@@ -687,26 +687,25 @@ export default function SingleReleaseRequest() {
         }
         setEditableAuthorIndex(index)
     }
-
-    const handleSaveAuthorDocs = () => {
-        let formFilled = true
+    
+    const authorDocsFormIsOk = (): boolean => {
         invalidFieldKeys.forEach(element => {
             if (element.includes('passport-')) {
-                formFilled = false
+                return false
             }
         });
         if (authorDocsForm.paymentValue === '' && authorDocsForm.paymentType !== 'free') {
-            formFilled = false
+            return false
         }
         Object.values(authorDocsForm.passport).forEach(element => {
             if (element === '') {
-                formFilled = false
+                return false
             }
         })
-        if (!formFilled) {
-            alert("Заполните все поля добавляемого документа.")
-            return
-        }
+        return true
+    }
+    
+    const handleSaveAuthorDocs = () => {
         const newAuthorsState = [...authors]
         newAuthorsState[editableAuthorIndex!].docs = authorDocsForm
         setAuthors(newAuthorsState)
@@ -1156,7 +1155,7 @@ export default function SingleReleaseRequest() {
                         )}
                     </div>
 
-                    <button onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                    <button onClick={handleSaveAuthorDocs} disabled={!authorDocsFormIsOk()} className="submit" >СОХРАНИТЬ</button>
                 </div>
             </div>
         )
