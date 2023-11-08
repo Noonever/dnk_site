@@ -269,9 +269,8 @@ select option[selected] {
   align-items: center;
   height: calc(100% - 2px);
   justify-content: space-between;
-  width: 200px;
+  width: 250px;
   border: 1px solid #ccc;
-  background-color: #ffffff00;
   border-radius: 30px;
   cursor: pointer;
   user-select: none;
@@ -296,17 +295,19 @@ select option[selected] {
 .select-header {
   display: flex;
   width: 100%;
-  justify-content: space-between;
-  padding-left: 10px;
+  justify-content: center;
+  gap: 20%;
+  padding-right: 10%;
 }
 
 .selected-value {
+  padding-left: 2vw;
   flex: 1;
   white-space: nowrap;
 }
 
 .dropdown-icon {
-  font-size: 12px;
+  font-size: 20px;
 }
 
 .dropdown-icon.open {
@@ -323,7 +324,7 @@ select option[selected] {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #ccc;
-  background-color: rgb(50, 50, 50);
+  background-color: #585c9a;
   border-radius: 0 0 4px 4px;
   z-index: 1;
   transition: opacity 0.3s, visibility 0.3s;
@@ -351,7 +352,7 @@ select option[selected] {
 }
 
 .option.selected {
-  background-color: #d3d3d3;
+  background-color: #b9b9b9;
 }
 
 /* Style the scrollbar (you can adjust this as needed) */
@@ -374,4 +375,32 @@ select option[selected] {
 
 .options::-webkit-scrollbar-track:hover {
   background-color: #d4d4d4;
+}
+
+input[type='date'] {
+  padding-right: 70%;
+}
+
+.TooltipContent {
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+label.genre {
+  padding-left: 0.25vw;
+}
+
+select.input {
+  background-color: #00000000;
 }

@@ -24,10 +24,13 @@ import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~
 import CustomSelect from "~/components/select";
 
 const fullNameRePattern = fullNamesRePattern
-const sixDigitsRePattern = /^\d{6}$/
 const tenDigitsRePattern = /^\d{10}$/
 const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
 const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+
+const ruPassportNumberRePattern = /^\d{4} \d{6}$/
+const ruCodeRePattern = /^\d{3}-\d{3}$/
+const snilsRePattern = /^\d{3}-\d{3}-\d{3} \d{2}$/
 
 //@ts-ignore
 export const meta: MetaFunction = () => {
@@ -68,7 +71,7 @@ export default function SingleReleaseRequest() {
         phonogramProducersNames: string,
     } = {
         explicit: false,
-        preview: "0:00",
+        preview: "",
         isCover: false,
         wavFile: undefined,
         textFile: undefined,
@@ -105,7 +108,8 @@ export default function SingleReleaseRequest() {
             issuedBy: "",
             issueDate: "",
             code: "",
-            registrationDate: "",
+            registrationAddress: "",
+            snils: "",
         }
     })
 
@@ -156,12 +160,10 @@ export default function SingleReleaseRequest() {
         }
     }
 
-    const handleChangeTrackIsExplicit = (trackId: number) => {
+    const handleChangeTrackIsExplicit = (trackId: number, value: boolean) => {
         // no validation
         const newTrackForms = [...trackForms];
-
-        newTrackForms[trackId].explicit = !trackForms[trackId].explicit;
-
+        newTrackForms[trackId].explicit = value
         setTrackForms(newTrackForms);
     }
 
@@ -183,13 +185,10 @@ export default function SingleReleaseRequest() {
         setTrackForms(newTrackForms);
     }
 
-    const handleChangeTrackIsCover = (trackId: number) => {
+    const handleChangeTrackIsCover = (trackId: number, value: boolean) => {
         // no validation
-        const track = trackForms[trackId];
         const newTrackForms = [...trackForms];
-
-        newTrackForms[trackId].isCover = !track.isCover;
-
+        newTrackForms[trackId].isCover = value;
         setTrackForms(newTrackForms);
     }
 
@@ -470,6 +469,7 @@ export default function SingleReleaseRequest() {
             )
             if (response === 200) {
                 setModalIsOpened(false)
+                alert('Заявка успешно отправлена')
                 flushForm()
             }
         } catch (error) {
@@ -525,10 +525,12 @@ export default function SingleReleaseRequest() {
             if (fieldName === 'fullName') {
                 isValid = fullNameRePattern.test(value) || value === ''
             } else if (fieldName === 'number') {
-                isValid = tenDigitsRePattern.test(value) || value === ''
+                isValid = ruPassportNumberRePattern.test(value) || value === ''
                 console.log('value', value, 'pattern', tenDigitsRePattern, isValid)
             } else if (fieldName === 'code') {
-                isValid = sixDigitsRePattern.test(value) || value === ''
+                isValid = ruCodeRePattern.test(value) || value === ''
+            } else if (fieldName === 'snils') {
+                isValid = snilsRePattern.test(value) || value === ''
             }
 
             if (!isValid) {
@@ -606,7 +608,8 @@ export default function SingleReleaseRequest() {
                 issuedBy: "",
                 issueDate: "",
                 code: "",
-                registrationDate: "",
+                registrationAddress: "",
+                snils: "",
             } as RuPassportData
 
         } else if (value === 'kz') {
@@ -672,7 +675,8 @@ export default function SingleReleaseRequest() {
                 issuedBy: "",
                 issueDate: "",
                 code: "",
-                registrationDate: "",
+                registrationAddress: "",
+                snils: "",
             }
             const newAuthorDocs: AuthorDocs = {
                 passport: emptyRuPassport,
@@ -687,24 +691,33 @@ export default function SingleReleaseRequest() {
         }
         setEditableAuthorIndex(index)
     }
-    
+
     const authorDocsFormIsOk = (): boolean => {
-        invalidFieldKeys.forEach(element => {
-            if (element.includes('passport-')) {
+
+        for ( const [key, value] of Object.entries(authorDocsForm.passport) ) {
+            console.log(key, value)
+            if ((value === '' || value === undefined || value === null) && key !== 'snils') {
+                console.log('invalid')
                 return false
             }
-        });
+        }
+
+        for ( const key of invalidFieldKeys ) {
+            if (key.includes('passport-')) {
+                return false
+            }
+        }
+
         if (authorDocsForm.paymentValue === '' && authorDocsForm.paymentType !== 'free') {
             return false
         }
-        Object.values(authorDocsForm.passport).forEach(element => {
-            if (element === '') {
-                return false
-            }
-        })
+
+        console.log(authorDocsForm.passport)
+
+        
         return true
     }
-    
+
     const handleSaveAuthorDocs = () => {
         const newAuthorsState = [...authors]
         newAuthorsState[editableAuthorIndex!].docs = authorDocsForm
@@ -781,7 +794,6 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата рождения</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.birthDate}
                                 onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
@@ -791,17 +803,16 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Серия и номер</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="1234 567890"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Кем выдан</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.issuedBy}
                                 onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
@@ -811,7 +822,6 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата выдачи</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.issueDate}
                                 onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
@@ -821,26 +831,24 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Код подразделения</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.code}
                                 onChange={(event) => handleChangeCurrentPassport('code', event.target.value)}
                                 {...invalidFieldKeys.has('passport-code') && { style: { border: "1px solid red" } }}
+                                placeholder="123-456"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата регистрации</label>
                             <input
-
                                 className="field"
-                                value={ruPassport.registrationDate}
+                                value={ruPassport.registrationAddress}
                                 type={"date"}
-                                onChange={(event) => handleChangeCurrentPassport('registrationDate', event.target.value)}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
                             />
                         </div>
                     </div>
                 </div>
-
             )
         } else if (passportType === 'kz') {
             const kzPassport = passportData as KzPassportData
@@ -884,6 +892,7 @@ export default function SingleReleaseRequest() {
                                 value={kzPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="N12345678"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -893,6 +902,7 @@ export default function SingleReleaseRequest() {
                                 value={kzPassport.idNumber}
                                 onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
                                 {...invalidFieldKeys.has('passport-idNumber') && { style: { border: "1px solid red" } }}
+                                placeholder="123456789012"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -963,6 +973,7 @@ export default function SingleReleaseRequest() {
                                 value={byPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="МР1234567"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -1080,24 +1091,23 @@ export default function SingleReleaseRequest() {
         }
         return (
             <>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <div className="bubble" style={{ width: '60%' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '1%', justifyContent: 'space-between', marginTop: '2vh' }}>
+                    <div className="bubble" style={{ width: '100%' }}>
                         <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
 
-                        <select
-                            value={passportType}
-                            onChange={(e) => {
-                                handleChangeCurrentPassportType(e.target.value as 'ru' | 'kz' | 'by' | 'foreign');
-                            }}
-                        >
-                            <option value="ru">РФ</option>
-                            <option value="kz">КЗ</option>
-                            <option value="by">РБ</option>
-                            <option value="foreign">ИНОСТРАННЫЙ</option>
-                        </select>
-
+                        <CustomSelect
+                            onChange={(value) => handleChangeCurrentPassportType(value as 'ru' | 'kz' | 'by' | 'foreign')}
+                            options={
+                                [
+                                    { value: 'ru', label: 'РФ' },
+                                    { value: 'kz', label: 'КЗ' },
+                                    { value: 'by', label: 'РБ' },
+                                    { value: 'foreign', label: 'ИНОСТРАННЫЙ' },
+                                ]
+                            }
+                        ></CustomSelect>
                     </div>
-                    <span style={{ color: '#fff', fontFamily: 'Montserrat', fontSize: '26px', fontStyle: 'normal', fontWeight: '700', lineHeight: '10px' }} onClick={() => setEditableAuthorIndex(null)}>X</span>
+                    <div className="bubble" onClick={() => setEditableAuthorIndex(null)} style={{ width: '1%', cursor: 'pointer' }}>X</div>
                 </div>
                 {passportSection}
             </>
@@ -1115,14 +1125,14 @@ export default function SingleReleaseRequest() {
                 <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
-                        <div className="responsive-selector-field" style={{ margin: '0' }} onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: !authorDocsForm.licenseOrAlienation })}>
-                            <span className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
-                            <span className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
+                        <div className="responsive-selector-field" style={{ margin: '0' }}>
+                            <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: true })} className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
+                            <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: false })} className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
                         </div>
                     </div >
                 </div>
                 <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{display: 'flex', flexDirection: 'row'}}>
+                    <div style={{ display: 'flex', flexDirection: 'row' }}>
                         <CustomSelect
                             style={{ padding: '6px', paddingLeft: '0.5vw', paddingRight: '20px', height: '3vh', border: '1px solid white', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
                             defaultValue={authorDocsForm.paymentType}
@@ -1145,17 +1155,19 @@ export default function SingleReleaseRequest() {
                                     value: 'other'
                                 },
                             ]}
-                            round={true}></CustomSelect>
+                        ></CustomSelect>
                         {authorDocsForm.paymentType == 'free' ? (<></>) : (
                             <input
                                 value={authorDocsForm.paymentValue}
-                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value.replace('%', '') })}
+                                onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
                                 style={{ padding: '6px', paddingLeft: '0.5vw', width: '5vw', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                                placeholder={{ 'royalty': '70%', 'sum': '500р', 'other': '' }[authorDocsForm.paymentType]}
                             ></input>
                         )}
                     </div>
-
-                    <button onClick={handleSaveAuthorDocs} disabled={!authorDocsFormIsOk()} className="submit" >СОХРАНИТЬ</button>
+                    <div className="submit-button-container" style={!authorDocsFormIsOk() ? { color: "none", pointerEvents: "none", opacity: 0.5, cursor: "not-allowed", marginTop: '0' } : {marginTop: '0'}}>
+                        <button disabled={!authorDocsFormIsOk()} onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                    </div>
                 </div>
             </div>
         )
@@ -1165,12 +1177,12 @@ export default function SingleReleaseRequest() {
         return (
             <>
                 <div style={{ width: '100vw', height: '4.58vh', backgroundColor: '#ffffff26', marginTop: '6vh', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ АВТОРОВ</span>
+                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ C АВТОРАМИ</span>
                 </div>
 
-                <div onClick={() => setAuthorIsSolo(!authorIsSolo)} style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
-                    <span className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0">АРТИСТ АВТОР ВСЕГО /</span>
-                    <span className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0"> АВТОРОВ НЕСКОЛЬКО</span>
+                <div style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
+                    <span onClick={() => setAuthorIsSolo(true)} className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0" style={{ cursor: 'pointer' }}>АРТИСТ АВТОР ВСЕГО /</span>
+                    <span onClick={() => setAuthorIsSolo(false)} className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0" style={{ cursor: 'pointer' }}> АВТОРОВ НЕСКОЛЬКО</span>
                 </div>
 
 
@@ -1215,34 +1227,56 @@ export default function SingleReleaseRequest() {
 
                 {/* release performers */}
                 <div className="row-field" >
+
                     <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releasePerformers}
-                            onChange={handleChangeReleasePerformers}
-                            placeholder="Кобяков"
-                            required={true}
-                            id="left"
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-performers`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releasePerformers}
+                                        onChange={handleChangeReleasePerformers}
+                                        placeholder="Кобяков"
+                                        id="left"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-performers`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Псевдоним исполнителя в том виде, в каком он будет отражен на площадках.<br></br>
+                                    Если в песне несколько основных исполнителей, просьба заполнить всех основных исполнителей через запятую.<br></br>
+                                    Пример: "Джиган, Тимати, Егор Крид", если необходимо указать в треке артиста через "feat",<br></br>
+                                    то необходимо заполнить в следующем формате: "Джиган feat.Тимати", в таком случае Джиган - основной исполнитель, Тимати - приглашенный.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
+
 
                 {/* release title */}
                 <div className="row-field">
                     <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releaseTitle}
-                            onChange={handleChangeReleaseTitle}
-                            placeholder="Пушка"
-                            required={true}
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-title`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releaseTitle}
+                                        onChange={handleChangeReleaseTitle}
+                                        placeholder="Пушка"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-title`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Название релиза в том виде, в каком оно будет отражено на площадках.<br></br>
+                                    Важно: Пушка и ПУШКА - разные названия.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
 
@@ -1250,18 +1284,26 @@ export default function SingleReleaseRequest() {
                 <div className="row-field" id="right">
                     <label className="input shifted">ВЕРСИЯ</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releaseVersion}
-                            onChange={handleChangeReleaseVersion}
-                            placeholder="Remix"
-                            id="right"
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releaseVersion}
+                                        onChange={handleChangeReleaseVersion}
+                                        placeholder="Remix"
+                                        id="right"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Remix / prod.by / Acoustic и т.д.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
-
             </div>
 
             <div className="release-other-fields">
@@ -1275,7 +1317,6 @@ export default function SingleReleaseRequest() {
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
-                        required={true}
                         className="input"
                     >
                         <ReleaseGenreOptions />
@@ -1283,160 +1324,257 @@ export default function SingleReleaseRequest() {
                 </div>
 
                 {/* release cover */}
-                <div className="release-cover-selector">
-                    <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                    <label className="input cover">ОБЛОЖКА*</label>
-                    {!releaseCoverFile ? (
-                        <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    ) : (
-                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    )}
-                </div>
-
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="release-cover-selector">
+                                <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
+                                <label className="input cover">ОБЛОЖКА*</label>
+                                {!releaseCoverFile ? (
+                                    <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                ) : (
+                                    <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                )}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Обложка в формате jpeg 3000x3000.
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
 
-            {trackForms.map((trackForm, index) => {
-                return (
-                    <div key={index} style={{ width: '100%' }}>
+            {
+                trackForms.map((trackForm, index) => {
+                    return (
+                        <div key={index} style={{ width: '100%' }}>
 
-                        <div className="track-form">
+                            <div className="track-form">
 
-                            <div className="left-track-fields">
+                                <div className="left-track-fields">
 
-                                <div id='upper-left-track-fields'>
+                                    <div id='upper-left-track-fields'>
 
-                                    {/* explicit */}
-                                    <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ?*</label>
-                                    <div className="responsive-selector-field" onClick={() => handleChangeTrackIsExplicit(index)}>
-                                        <span className={"responsive-selector" + (trackForm.explicit ? " active" : '')} id="0">ДА /</span>
-                                        <span className={"responsive-selector" + (!trackForm.explicit ? " active" : '')} id="0"> НЕТ</span>
+                                        {/* explicit */}
+                                        <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ?*</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="responsive-selector-field">
+                                                        <span onClick={() => handleChangeTrackIsExplicit(index, true)} className={"responsive-selector" + (trackForm.explicit ? " active" : '')} id="0">ДА /</span>
+                                                        <span onClick={() => handleChangeTrackIsExplicit(index, false)} className={"responsive-selector" + (!trackForm.explicit ? " active" : '')} id="0"> НЕТ</span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Выберите “Да” в том случае, если в произведении есть нецензурная лексика.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+
+
+                                        <label className="input downgap">ПРЕВЬЮ</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <input
+                                                        value={trackForm.preview}
+                                                        placeholder="0:00"
+                                                        onChange={(e) => handleChangeTrackPreview(e, index)}
+                                                        className="preview"
+                                                        {...invalidFieldKeys.has(`${index}-track-preview`) ? { style: { border: "1px solid red" } } : null}
+                                                        type="text"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    С указанного тайминга будет начинаться минутный отрезок, который будет в тик-токе,<br></br>
+                                                    а также в качестве предварительного прослушивания на площадках.<br></br>
+                                                    Если вы не укажете превью, то на площадки будет отправлен отрывок с самого начала песни.<br></br>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+
+
+                                        {/* isCover */}
+                                        <label className="input downgap">КАВЕР?</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="responsive-selector-field">
+                                                        <span onClick={() => handleChangeTrackIsCover(index, true)} className={"responsive-selector" + (trackForm.isCover ? " active" : '')} id="0">ДА /</span>
+                                                        <span onClick={() => handleChangeTrackIsCover(index, false)} className={"responsive-selector" + (!trackForm.isCover ? " active" : '')} id="0"> НЕТ</span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Выберите “Да”, если оригинал песни написан не вами.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
 
-                                    <label className="input downgap">ПРЕВЬЮ</label>
-                                    <input
-                                        value={trackForm.preview}
-                                        placeholder="0:00"
-                                        onChange={(e) => handleChangeTrackPreview(e, index)}
-                                        className="preview"
-                                        {...invalidFieldKeys.has(`${index}-track-preview`) ? { style: { border: "1px solid red" } } : null}
-                                        type="text"
-                                    />
+                                    <div className="lower-left-track-fields">
 
-                                    {/* isCover */}
-                                    <label className="input downgap">КАВЕР?</label>
-                                    <div className="responsive-selector-field" onClick={() => handleChangeTrackIsCover(index)}>
-                                        <span className={"responsive-selector" + (trackForm.isCover ? " active" : '')} id="0">ДА /</span>
-                                        <span className={"responsive-selector" + (!trackForm.isCover ? " active" : '')} id="0"> НЕТ</span>
-                                    </div>
+                                        {/* wav file */}
+                                        <div className="load-row">
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="load-file">
+                                                            <label className="input">.WAV*</label>
+                                                            <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
+                                                            {!trackForm.wavFile ? (
+                                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Wav файл трека (перед отправкой рекомендуем проверить корректность версии трека, а также целостность файла).
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
 
-                                </div>
-
-                                <div className="lower-left-track-fields">
-
-                                    {/* wav file */}
-                                    <div className="load-row">
-                                        <div className="load-file">
-                                            <label className="input">.WAV*</label>
-                                            <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
-                                            {!trackForm.wavFile ? (
-                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            ) : (
-                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            )}
+                                        {/* text file */}
+                                        <div className="load-row">
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="load-file">
+                                                            <label className="input">ТЕКСТ</label>
+                                                            <input accept=".docx" onChange={(e) => handleChangeTrackTextFile(e, index)} type="file" className="full-cover" />
+                                                            {!trackForm.textFile ? (
+                                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Текст трека в формате .docx (word) (перед отправкой необходимо убедиться в том, что текст в документе соответствует словам песни).
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* text file */}
-                                    <div className="load-row">
-                                        <div className="load-file">
-                                            <label className="input">ТЕКСТ</label>
-                                            <input accept=".docx" onChange={(e) => handleChangeTrackTextFile(e, index)} type="file" className="full-cover" />
-                                            {!trackForm.textFile ? (
-                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            ) : (
-                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            )}
-                                        </div>
+                                <div className="right-track-fields">
+
+                                    {/* track performers names */}
+                                    <div className="right-track-field">
+                                        <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <input
+                                                        value={trackForm.performersNames}
+                                                        onChange={(e) => handleChangeTrackPerformersNames(e, index)}
+                                                        className="track-field"
+                                                        {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
+                                                        placeholder="Иванов Иван Иванович"
+                                                        type="text"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Реальные ФИО исполнителей. Eсли их несколько - укажите через запятую.<br></br>
+                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+
+                                    {/* track music authors */}
+                                    <div className="right-track-field">
+                                        <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <input
+                                                        value={trackForm.musicAuthorsNames}
+                                                        onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
+                                                        className="track-field"
+                                                        {...invalidFieldKeys.has(`${index}-track-musicAuthorsNames`) ? { style: { border: "1px solid red" } } : null}
+                                                        placeholder="Иванов Иван Иванович"
+                                                        type="text"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Реальные ФИО авторов музыки. Eсли их несколько - укажите через запятую.<br></br>
+                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    {/* track lyricists */}
+                                    <div className="right-track-field">
+                                        <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <input
+                                                        value={trackForm.lyricistsNames}
+                                                        onChange={(e) => handleChangeTrackLyricists(e, index)}
+                                                        className="track-field"
+                                                        {...invalidFieldKeys.has(`${index}-track-lyricistsNames`) ? { style: { border: "1px solid red" } } : null}
+                                                        placeholder="Иванов Иван Иванович"
+                                                        type="text"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Реальные ФИО авторов слов. Eсли их несколько - укажите через запятую.<br></br>
+                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+
+                                    {/* track phonogram producers */}
+                                    <div className="right-track-field">
+                                        <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <input
+                                                        value={trackForm.phonogramProducersNames}
+                                                        onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
+                                                        className="track-field"
+                                                        {...invalidFieldKeys.has(`${index}-track-phonogramProducersNames`) ? { style: { border: "1px solid red" } } : null}
+                                                        placeholder="Иванов Иван Иванович"
+                                                        type="text"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Реальные ФИО изготовителей фонограммы.<br></br>
+                                                    Обычно изготовителем фонограммы является сам артист или человек, который спродюсировал процесс записи, профинансировал, дал идею.<br></br>
+                                                    Пример: Иванов Иван Иванович
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="right-track-fields">
-
-                                {/* track performers names */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
-                                    <input
-                                        value={trackForm.performersNames}
-                                        onChange={(e) => handleChangeTrackPerformersNames(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
+                                <div className="copy-button-container">
+                                    <svg onClick={() => handleCopyFields(index)} className="button" width="23" height="27" viewBox="0 0 23 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 15.5833L11.5 26L22 15.5833M1 1L11.5 11.4167L22 1" stroke="white" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
                                 </div>
-
-                                {/* track music authors */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
-                                    <input
-                                        value={trackForm.musicAuthorsNames}
-                                        onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-musicAuthorsNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
-
-                                {/* track lyricists */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
-                                    <input
-                                        value={trackForm.lyricistsNames}
-                                        onChange={(e) => handleChangeTrackLyricists(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-lyricistsNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
-
-                                {/* track phonogram producers */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
-                                    <input
-                                        value={trackForm.phonogramProducersNames}
-                                        onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-phonogramProducersNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
-
-                            </div>
-                            <div className="copy-button-container">
-                                <svg onClick={() => handleCopyFields(index)} className="button" width="23" height="27" viewBox="0 0 23 27" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 15.5833L11.5 26L22 15.5833M1 1L11.5 11.4167L22 1" stroke="white" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
                             </div>
                         </div>
-                    </div>
-                )
-            })}
+                    )
+                })
+            }
 
             {renderDocsSection()}
 
@@ -1454,6 +1592,6 @@ export default function SingleReleaseRequest() {
                 </div>
 
             </div>
-        </div>
+        </div >
     )
 }

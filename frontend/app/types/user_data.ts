@@ -8,7 +8,8 @@ interface RuPassportData extends BasePassportData {
     issuedBy: string;
     issueDate: string;
     code: string;
-    registrationDate: string;
+    registrationAddress: string;
+    snils: string;
 }
 
 interface KzPassportData extends BasePassportData {
@@ -95,6 +96,8 @@ export interface UserData {
     };
     currentLegalEntity: 'self' | 'individual' | 'ooo';
     selfEmployedLegalEntity: SelfEmployedLegalEntity;
+    email: string;
+    socials: string;
     individualEntrepreneurLegalEntity: IndividualEntrepreneurLegalEntity;
     oooLegalEntity: OooLegalEntity;
 }

@@ -13,14 +13,25 @@ import { requireUserName } from "~/utils/session.server";
 import styles from "~/styles/request.single.css";
 import passportStyles from "~/styles/me.css";
 import ReleaseGenreOptions from "~/components/release-genres";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 import { fullNamesRePattern, linkRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
 
+import CustomSelect from "~/components/select";
+
 const fullNameRePattern = fullNamesRePattern
-const sixDigitsRePattern = /^\d{6}$/
 const tenDigitsRePattern = /^\d{10}$/
 const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
 const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+
+const ruPassportNumberRePattern = /^\d{4} \d{6}$/
+const ruCodeRePattern = /^\d{3}-\d{3}$/
+const snilsRePattern = /^\d{3}-\d{3}-\d{3} \d{2}$/
 
 //@ts-ignore
 export const meta: MetaFunction = () => {
@@ -31,7 +42,7 @@ export const meta: MetaFunction = () => {
 };
 
 export const links: LinksFunction = () => {
-    return [{rel: "stylesheet", href: passportStyles}, { rel: "stylesheet", href: styles }];
+    return [{ rel: "stylesheet", href: passportStyles }, { rel: "stylesheet", href: styles }];
 };
 
 export async function loader({ request }: LoaderArgs): Promise<string> {
@@ -90,7 +101,7 @@ export default function SingleReleaseRequest() {
             issuedBy: "",
             issueDate: "",
             code: "",
-            registrationDate: "",
+            registrationAddress: "",
         }
     })
 
@@ -318,7 +329,7 @@ export default function SingleReleaseRequest() {
                 authorsToSend.push(authorToSend)
             }
         }
-        
+
         const clip = clipForms[0]
 
         const coverFileId = await uploadFile(releaseCoverFile)
@@ -340,12 +351,13 @@ export default function SingleReleaseRequest() {
         try {
             setModalIsOpened(true)
             const response = await uploadClipReleaseRequest(
-                userId, 
-                clipRelease, 
+                userId,
+                clipRelease,
                 authorsToSend
             )
             if (response === 200) {
                 setModalIsOpened(false)
+                alert('Заявка успешно отправлена')
                 flushForm()
             }
         } catch (error) {
@@ -401,10 +413,12 @@ export default function SingleReleaseRequest() {
             if (fieldName === 'fullName') {
                 isValid = fullNameRePattern.test(value) || value === ''
             } else if (fieldName === 'number') {
-                isValid = tenDigitsRePattern.test(value) || value === ''
+                isValid = ruPassportNumberRePattern.test(value) || value === ''
                 console.log('value', value, 'pattern', tenDigitsRePattern, isValid)
             } else if (fieldName === 'code') {
-                isValid = sixDigitsRePattern.test(value) || value === ''
+                isValid = ruCodeRePattern.test(value) || value === ''
+            } else if (fieldName === 'snils') {
+                isValid = snilsRePattern.test(value) || value === ''
             }
 
             if (!isValid) {
@@ -482,7 +496,8 @@ export default function SingleReleaseRequest() {
                 issuedBy: "",
                 issueDate: "",
                 code: "",
-                registrationDate: "",
+                registrationAddress: "",
+                snils: "",
             } as RuPassportData
 
         } else if (value === 'kz') {
@@ -548,7 +563,8 @@ export default function SingleReleaseRequest() {
                 issuedBy: "",
                 issueDate: "",
                 code: "",
-                registrationDate: "",
+                registrationAddress: "",
+                snils: "",
             }
             const newAuthorDocs: AuthorDocs = {
                 passport: emptyRuPassport,
@@ -564,25 +580,33 @@ export default function SingleReleaseRequest() {
         setEditableAuthorIndex(index)
     }
 
-    const handleSaveAuthorDocs = () => {
-        let formFilled = true
-        invalidFieldKeys.forEach(element => {
-            if (element.includes('passport-')) {
-                formFilled = false
+    const authorDocsFormIsOk = (): boolean => {
+
+        for (const [key, value] of Object.entries(authorDocsForm.passport)) {
+            console.log(key, value)
+            if ((value === '' || value === undefined || value === null) && key !== 'snils') {
+                console.log('invalid')
+                return false
             }
-        });
+        }
+
+        for (const key of invalidFieldKeys) {
+            if (key.includes('passport-')) {
+                return false
+            }
+        }
+
         if (authorDocsForm.paymentValue === '' && authorDocsForm.paymentType !== 'free') {
-            formFilled = false
+            return false
         }
-        Object.values(authorDocsForm.passport).forEach(element => {
-            if (element === '') {
-                formFilled = false
-            }
-        })
-        if (!formFilled) {
-            alert("Заполните все поля добавляемого документа.")
-            return
-        }
+
+        console.log(authorDocsForm.passport)
+
+
+        return true
+    }
+
+    const handleSaveAuthorDocs = () => {
         const newAuthorsState = [...authors]
         newAuthorsState[editableAuthorIndex!].docs = authorDocsForm
         setAuthors(newAuthorsState)
@@ -612,7 +636,7 @@ export default function SingleReleaseRequest() {
                                         </svg>
                                     )}
                                     {author.docs ? (<></>) : (
-                                        <div style={{position: 'relative'}}>
+                                        <div style={{ position: 'relative' }}>
                                             <input onChange={(e) => handleChangeAuthorFile(index, e)} className="full-cover" type="file"></input>
                                             <svg className='track-controls' width="33" height="33" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -658,7 +682,6 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата рождения</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.birthDate}
                                 onChange={(event) => handleChangeCurrentPassport('birthDate', event.target.value)}
@@ -668,17 +691,16 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Серия и номер</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="1234 567890"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Кем выдан</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.issuedBy}
                                 onChange={(event) => handleChangeCurrentPassport('issuedBy', event.target.value)}
@@ -688,7 +710,6 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата выдачи</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.issueDate}
                                 onChange={(event) => handleChangeCurrentPassport('issueDate', event.target.value)}
@@ -698,26 +719,24 @@ export default function SingleReleaseRequest() {
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Код подразделения</label>
                             <input
-
                                 className="field"
                                 value={ruPassport.code}
                                 onChange={(event) => handleChangeCurrentPassport('code', event.target.value)}
                                 {...invalidFieldKeys.has('passport-code') && { style: { border: "1px solid red" } }}
+                                placeholder="123-456"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата регистрации</label>
                             <input
-
                                 className="field"
-                                value={ruPassport.registrationDate}
+                                value={ruPassport.registrationAddress}
                                 type={"date"}
-                                onChange={(event) => handleChangeCurrentPassport('registrationDate', event.target.value)}
+                                onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
                             />
                         </div>
                     </div>
                 </div>
-
             )
         } else if (passportType === 'kz') {
             const kzPassport = passportData as KzPassportData
@@ -750,6 +769,7 @@ export default function SingleReleaseRequest() {
                                 value={kzPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="N12345678"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -759,6 +779,7 @@ export default function SingleReleaseRequest() {
                                 value={kzPassport.idNumber}
                                 onChange={(event) => handleChangeCurrentPassport('idNumber', event.target.value)}
                                 {...invalidFieldKeys.has('passport-idNumber') && { style: { border: "1px solid red" } }}
+                                placeholder="123456789012"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -796,7 +817,7 @@ export default function SingleReleaseRequest() {
                             />
                         </div>
                     </div>
-                </div>
+                </div >
             )
         } else if (passportType === 'by') {
             const byPassport = passportData as ByPassportData
@@ -829,6 +850,7 @@ export default function SingleReleaseRequest() {
                                 value={byPassport.number}
                                 onChange={(event) => handleChangeCurrentPassport('number', event.target.value)}
                                 {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                                placeholder="МР1234567"
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -946,26 +968,24 @@ export default function SingleReleaseRequest() {
         }
         return (
             <>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <div className="bubble" style={{ width: '60%' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '1%', justifyContent: 'space-between', marginTop: '2vh' }}>
+                    <div className="bubble" style={{ width: '100%' }}>
                         <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
 
-                        <select
-                            value={passportType}
-                            onChange={(e) => {
-                                handleChangeCurrentPassportType(e.target.value);
-                            }}
-                        >
-                            <option value="ru">РФ</option>
-                            <option value="kz">КЗ</option>
-                            <option value="by">РБ</option>
-                            <option value="foreign">ИНОСТРАННЫЙ</option>
-                        </select>
-
+                        <CustomSelect
+                            onChange={(value) => handleChangeCurrentPassportType(value as 'ru' | 'kz' | 'by' | 'foreign')}
+                            options={
+                                [
+                                    { value: 'ru', label: 'РФ' },
+                                    { value: 'kz', label: 'КЗ' },
+                                    { value: 'by', label: 'РБ' },
+                                    { value: 'foreign', label: 'ИНОСТРАННЫЙ' },
+                                ]
+                            }
+                        ></CustomSelect>
                     </div>
-                    <span style={{ color: '#fff', fontFamily: 'Montserrat', fontSize: '26px', fontStyle: 'normal', fontWeight: '700', lineHeight: '10px' }} onClick={() => setEditableAuthorIndex(null)}>X</span>
+                    <div className="bubble" onClick={() => setEditableAuthorIndex(null)} style={{ width: '1%', cursor: 'pointer' }}>X</div>
                 </div>
-
                 {passportSection}
             </>
         )
@@ -979,37 +999,52 @@ export default function SingleReleaseRequest() {
         return (
             <div className="docs-section">
                 {renderPassport()}
-                <div style={{ marginTop: '6vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
-                        <div className="responsive-selector-field" style={{ margin: '0' }} onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: !authorDocsForm.licenseOrAlienation })}>
-                            <span className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
-                            <span className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
+                        <div className="responsive-selector-field" style={{ margin: '0' }}>
+                            <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: true })} className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
+                            <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: false })} className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
                         </div>
                     </div >
-                    <div style={{ height: '3.17vh', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
-                        <select
-                            style={{ border: '1px solid white', paddingLeft: '2vh', height: '3vh', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
-                            value={authorDocsForm.paymentType}
-                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e.target.value as 'royalty' | 'free' | 'sum' | 'other' })}
-                        >
-                            <option value="royalty">РОЯЛТИ</option>
-                            <option value="free">БЕЗВОЗМЕЗДНО</option>
-                            <option value="sum">ФИКС. СУММА</option>
-                            <option value="other">ДРУГОЕ</option>
-                        </select>
+                </div>
+                <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row' }}>
+                        <CustomSelect
+                            style={{ padding: '6px', paddingLeft: '0.5vw', paddingRight: '20px', height: '3vh', border: '1px solid white', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
+                            defaultValue={authorDocsForm.paymentType}
+                            onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e as 'royalty' | 'free' | 'sum' | 'other' })}
+                            options={[
+                                {
+                                    label: 'РОЯЛТИ',
+                                    value: 'royalty'
+                                },
+                                {
+                                    label: 'БЕЗВОЗМЕЗДНО',
+                                    value: 'free'
+                                },
+                                {
+                                    label: 'ФИКС. СУММА',
+                                    value: 'sum'
+                                },
+                                {
+                                    label: 'ДРУГОЕ',
+                                    value: 'other'
+                                },
+                            ]}
+                        ></CustomSelect>
                         {authorDocsForm.paymentType == 'free' ? (<></>) : (
                             <input
-                                value={authorDocsForm.paymentValue || ''}
+                                value={authorDocsForm.paymentValue}
                                 onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
-                                style={{ padding: '6px', paddingLeft: '0.5vw', width: 'calc(11.51vw - 6px)', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                                style={{ padding: '6px', paddingLeft: '0.5vw', width: '5vw', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                                placeholder={{ 'royalty': '70%', 'sum': '500р', 'other': '' }[authorDocsForm.paymentType]}
                             ></input>
                         )}
-
                     </div>
-                </div>
-                <div style={{ marginTop: '3vh', display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <button onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                    <div className="submit-button-container" style={!authorDocsFormIsOk() ? { color: "none", pointerEvents: "none", opacity: 0.5, cursor: "not-allowed", marginTop: '0' } : { marginTop: '0' }}>
+                        <button disabled={!authorDocsFormIsOk()} onClick={handleSaveAuthorDocs} className="submit" >СОХРАНИТЬ</button>
+                    </div>
                 </div>
             </div>
         )
@@ -1019,12 +1054,12 @@ export default function SingleReleaseRequest() {
         return (
             <>
                 <div style={{ width: '100vw', height: '4.58vh', backgroundColor: '#ffffff26', marginTop: '6vh', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ АВТОРОВ</span>
+                    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>ДОКУМЕНТЫ C АВТОРАМИ</span>
                 </div>
 
-                <div onClick={() => setAuthorIsSolo(!authorIsSolo)} style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
-                    <span className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0">АРТИСТ АВТОР ВСЕГО /</span>
-                    <span className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0"> АВТОРОВ НЕСКОЛЬКО</span>
+                <div style={{ width: '100vw', height: '4.58vh', backgroundColor: 'none', marginTop: '2vh', textAlign: 'center', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '0.5vw' }}>
+                    <span onClick={() => setAuthorIsSolo(true)} className={"responsive-selector" + (authorIsSolo ? " active" : '')} id="0" style={{ cursor: 'pointer' }}>АРТИСТ АВТОР ВСЕГО /</span>
+                    <span onClick={() => setAuthorIsSolo(false)} className={"responsive-selector" + (!authorIsSolo ? " active" : '')} id="0" style={{ cursor: 'pointer' }}> АВТОРОВ НЕСКОЛЬКО</span>
                 </div>
 
 
@@ -1069,19 +1104,30 @@ export default function SingleReleaseRequest() {
 
                 {/* release performers */}
                 <div className="row-field" >
+
                     <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releasePerformers}
-                            onChange={handleChangeReleasePerformers}
-                            name="release-performers"
-                            placeholder="Кобяков"
-                            required={true}
-                            id="left"
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-performers`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releasePerformers}
+                                        onChange={handleChangeReleasePerformers}
+                                        placeholder="Кобяков"
+                                        id="left"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-performers`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Псевдоним исполнителя в том виде, в каком он будет отражен на площадках.<br></br>
+                                    Если в песне несколько основных исполнителей, просьба заполнить всех основных исполнителей через запятую.<br></br>
+                                    Пример: "Джиган, Тимати, Егор Крид", если необходимо указать в треке артиста через "feat",<br></br>
+                                    то необходимо заполнить в следующем формате: "Джиган feat.Тимати", в таком случае Джиган - основной исполнитель, Тимати - приглашенный.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
 
@@ -1089,16 +1135,24 @@ export default function SingleReleaseRequest() {
                 <div className="row-field">
                     <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releaseTitle}
-                            onChange={handleChangeReleaseTitle}
-                            name="release-title"
-                            placeholder="Пушка"
-                            required={true}
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-title`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releaseTitle}
+                                        onChange={handleChangeReleaseTitle}
+                                        placeholder="Пушка"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-title`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Название релиза в том виде, в каком оно будет отражено на площадках.<br></br>
+                                    Важно: Пушка и ПУШКА - разные названия.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
 
@@ -1106,19 +1160,26 @@ export default function SingleReleaseRequest() {
                 <div className="row-field" id="right">
                     <label className="input shifted">ВЕРСИЯ</label>
                     <div className="row-field-input-container">
-                        <input
-                            value={releaseVersion}
-                            onChange={handleChangeReleaseVersion}
-                            name="release-version"
-                            placeholder="Remix"
-                            id="right"
-                            className="field release"
-                            {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
-                            type="text"
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <input
+                                        value={releaseVersion}
+                                        onChange={handleChangeReleaseVersion}
+                                        placeholder="Remix"
+                                        id="right"
+                                        className="field release"
+                                        {...invalidFieldKeys.has(`release-version`) ? { style: { border: "1px solid red" } } : null}
+                                        type="text"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Remix / prod.by / Acoustic и т.д х
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
-
             </div>
 
             <div className="release-other-fields spaced">
@@ -1140,104 +1201,167 @@ export default function SingleReleaseRequest() {
                 </div>
 
                 {/* release cover */}
-                <div className="release-cover-selector">
-                    <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                    <label className="input cover">ОБЛОЖКА*</label>
-                    {!releaseCoverFile ? (
-                        <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    ) : (
-                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    )}
-                </div>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="release-cover-selector">
+                                <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
+                                <label className="input cover">ОБЛОЖКА*</label>
+                                {!releaseCoverFile ? (
+                                    <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                ) : (
+                                    <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                )}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Remix / prod.by / Acoustic и т.д х
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
 
                 {/* release link */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label className="input shifted">ССЫЛКА НА КЛИП*</label>
-                    <input
-                        value={releaseLink}
-                        onChange={(e) => handleChangeReleaseLink(e)}
-                        {...invalidFieldKeys.has(`release-link`) ? { style: { border: "1px solid red" } } : null}
-                        className="back-catalog"
-                        type="text"
-                    />
-                </div>
-
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <label className="input shifted">ССЫЛКА НА КЛИП*</label>
+                                <input
+                                    value={releaseLink}
+                                    onChange={(e) => handleChangeReleaseLink(e)}
+                                    {...invalidFieldKeys.has(`release-link`) ? { style: { border: "1px solid red" } } : null}
+                                    className="back-catalog"
+                                    type="text"
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Remix / prod.by / Acoustic и т.д х
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
 
-            {clipForms.map((trackForm, index) => {
+            {clipForms.map((clipForm, index) => {
                 return (
                     <div key={index} style={{ width: '100%' }}>
                         <div className="clip-form">
                             <div className="right-track-fields">
 
                                 {/* track performers names */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
-                                    <input
-                                        value={trackForm.performersNames}
-                                        onChange={(e) => handleChangeClipPerformersNames(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="right-track-field">
+                                                <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
+                                                <input
+                                                    value={clipForm.performersNames}
+                                                    onChange={(e) => handleChangeClipPerformersNames(e, index)}
+                                                    className="track-field"
+                                                    {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
+                                                    placeholder="Иванов Иван Иванович"
+                                                    type="text"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Remix / prod.by / Acoustic и т.д х
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {/* track music authors */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
-                                    <input
-                                        value={trackForm.musicAuthorsNames}
-                                        onChange={(e) => handleChangeClipMusicAuthors(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="right-track-field">
+                                                <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
+                                                <input
+                                                    value={clipForm.musicAuthorsNames}
+                                                    onChange={(e) => handleChangeClipMusicAuthors(e, index)}
+                                                    className="track-field"
+                                                    {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
+                                                    placeholder="Иванов Иван Иванович"
+                                                    type="text"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Remix / prod.by / Acoustic и т.д х
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {/* track lyricists */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
-                                    <input
-                                        value={trackForm.lyricistsNames}
-                                        onChange={(e) => handleChangeClipLyricists(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="right-track-field">
+                                                <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
+                                                <input
+                                                    value={clipForm.lyricistsNames}
+                                                    onChange={(e) => handleChangeClipLyricists(e, index)}
+                                                    className="track-field"
+                                                    {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
+                                                    placeholder="Иванов Иван Иванович"
+                                                    type="text"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Remix / prod.by / Acoustic и т.д х
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {/* track phonogram producers */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
-                                    <input
-                                        value={trackForm.phonogramProducersNames}
-                                        onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="right-track-field">
+                                                <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
+                                                <input
+                                                    value={clipForm.phonogramProducersNames}
+                                                    onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
+                                                    className="track-field"
+                                                    {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
+                                                    placeholder="Иванов Иван Иванович"
+                                                    type="text"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Remix / prod.by / Acoustic и т.д х
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {/* track directors */}
-                                <div className="right-track-field">
-                                    <label className="input shifted">ФИО РЕЖИССЁРОВ*</label>
-                                    <input
-                                        value={trackForm.directorsNames}
-                                        onChange={(e) => handleChangeClipDirectorsNames(e, index)}
-                                        className="track-field"
-                                        {...invalidFieldKeys.has(`${index}-track-directorsNames`) ? { style: { border: "1px solid red" } } : null}
-                                        placeholder="Иванов Иван Иванович"
-                                        type="text"
-                                    />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="right-track-field">
+                                                <label className="input shifted">ФИО РЕЖИССЁРОВ*</label>
+                                                <input
+                                                    value={clipForm.directorsNames}
+                                                    onChange={(e) => handleChangeClipDirectorsNames(e, index)}
+                                                    className="track-field"
+                                                    {...invalidFieldKeys.has(`${index}-track-directorsNames`) ? { style: { border: "1px solid red" } } : null}
+                                                    placeholder="Иванов Иван Иванович"
+                                                    type="text"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Remix / prod.by / Acoustic и т.д х
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                             </div>
                         </div>

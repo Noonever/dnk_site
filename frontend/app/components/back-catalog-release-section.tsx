@@ -607,6 +607,7 @@ export default function BackCatalogReleaseSection(
                             onChange={(e) => setReleaseDate(e.target.value)}
                             className="field release"
                             type="date"
+                            style={{ paddingRight: '0px' }}
                         />
                     </div>
                 </div>

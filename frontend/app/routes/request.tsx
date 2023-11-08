@@ -18,11 +18,11 @@ export const links: LinksFunction = () => {
 };
 
 
-export async function loader({request}: LoaderArgs) {
+export async function loader({ request }: LoaderArgs) {
     const userName = await requireUserName(request);
     const user = await getUserByUsername(userName);
     return user;
-}   
+}
 
 export default function ReleaseRequest() {
 
@@ -36,8 +36,19 @@ export default function ReleaseRequest() {
 
     if (!user.isVerified) {
         return (
-            <div style={{cursor: "pointer"}} onClick={() => navigate('/me')}>
-                <span className="info-text" style={{textDecoration: "underline"}}>Для отправки заявок необходимо заполнить данные в профиле</span>      
+            <div style={{
+                cursor: "pointer",
+                backgroundColor: "rgba(255, 255, 255, 0.24)",
+                padding: "10px",
+                textAlign: "center",
+                height: '30vh',
+                width: '60%',
+                borderRadius: "30px",
+                display: "flex",
+                alignItems: "center",
+                marginTop: "10%",
+            }} onClick={() => navigate('/me')}>
+                <span style={{ textAlign: "center", width: '100%' }} className="info-text">Для отправки заявок необходимо заполнить данные в профиле</span>
             </div>
         );
     }

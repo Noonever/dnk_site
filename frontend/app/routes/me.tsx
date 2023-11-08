@@ -9,9 +9,8 @@ import { requireUserName } from "~/utils/session.server";
 import type { UserData, RuPassportData, KzPassportData, ByPassportData, ForeignPassportData } from "~/types/user_data";
 import { getUserByUsername } from "~/backend/user";
 import CustomSelect from "~/components/select";
+import { fullNameRePattern } from "~/utils/regexp";
 
-const fullNameRePattern = /^([А-ЯЁ][а-яё]+) ([А-ЯЁ][а-яё]+) ([А-ЯЁ][а-яё]+)$/;
-const sixDigitsRePattern = /^\d{6}$/
 const tenDigitsRePattern = /^\d{10}$/
 const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
 const kzPassportIdRePattern = /^d{12}$/
@@ -23,6 +22,10 @@ const ogrnipRePattern = /^\d{15}$/
 const ogrnRePattern = /^\d{13}$/
 const innOOORePattern = /^\d{10}$/
 const kppRePattern = /^\d{9}$/
+
+const ruPassportNumberRePattern = /^\d{4} \d{6}$/
+const ruCodeRePattern = /^\d{3}-\d{3}$/
+const snilsRePattern = /^\d{3}-\d{3}-\d{3} \d{2}$/
 
 
 //@ts-ignore
@@ -68,6 +71,8 @@ export default function UserProfile() {
     const [kzPassport, setKzPassport] = useState<KzPassportData>(userData.kzPassport.data)
     const [byPassport, setByPassport] = useState<ByPassportData>(userData.byPassport.data);
     const [foreignPassport, setForeignPassport] = useState<ForeignPassportData>(userData.foreignPassport.data);
+    const [userEmail, setUserEmail] = useState(userData.email);
+    const [userSocials, setUserSocials] = useState(userData.socials);
 
     const currentPassport = {
         ru: userData["ruPassport"],
@@ -98,10 +103,12 @@ export default function UserProfile() {
         if (fieldName === 'fullName') {
             isValid = fullNameRePattern.test(value) || value === ''
         } else if (fieldName === 'number') {
-            isValid = tenDigitsRePattern.test(value) || value === ''
+            isValid = ruPassportNumberRePattern.test(value) || value === ''
             console.log('value', value, 'pattern', tenDigitsRePattern, isValid)
         } else if (fieldName === 'code') {
-            isValid = sixDigitsRePattern.test(value) || value === ''
+            isValid = ruCodeRePattern.test(value) || value === ''
+        } else if (fieldName === 'snils') {
+            isValid = snilsRePattern.test(value) || value === ''
         }
 
         if (!isValid) {
@@ -131,7 +138,7 @@ export default function UserProfile() {
         } else if (fieldName === 'number') {
             isValid = kzPassportNumberRePattern.test(value) || value === ''
         } else if (fieldName === 'idNumber') {
-            isValid = /^d{12}$/.test(value) || value === ''
+            isValid = kzPassportIdRePattern.test(value) || value === ''
         }
 
         if (!isValid) {
@@ -198,6 +205,7 @@ export default function UserProfile() {
                         value={ruPassport.fullName}
                         onChange={(event) => handleChangeRuPassport(event, 'fullName')}
                         {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+                        placeholder="Иванов Иван Иванович"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -218,6 +226,7 @@ export default function UserProfile() {
                         value={ruPassport.number}
                         onChange={(event) => handleChangeRuPassport(event, 'number')}
                         {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                        placeholder="1234 567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -248,16 +257,27 @@ export default function UserProfile() {
                         value={ruPassport.code}
                         onChange={(event) => handleChangeRuPassport(event, 'code')}
                         {...invalidFieldKeys.has('passport-code') && { style: { border: "1px solid red" } }}
+                        placeholder="123-456"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
-                    <label className="input shifted">Дата регистрации</label>
+                    <label className="input shifted">Адрес регистрации</label>
                     <input
                         disabled={!passportEditable}
                         className="field"
-                        value={ruPassport.registrationDate}
-                        type={"date"}
-                        onChange={(event) => handleChangeRuPassport(event, 'registrationDate')}
+                        value={ruPassport.registrationAddress}
+                        onChange={(event) => handleChangeRuPassport(event, 'registrationAddress')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">СНИЛС</label>
+                    <input
+                        disabled={!passportEditable}
+                        className="field"
+                        value={ruPassport.snils}
+                        onChange={(event) => handleChangeRuPassport(event, 'snils')}
+                        {...invalidFieldKeys.has('passport-snils') && { style: { border: "1px solid red" } }}
+                        placeholder="123-456-789 00"
                     />
                 </div>
             </div>
@@ -295,6 +315,7 @@ export default function UserProfile() {
                         value={kzPassport.number}
                         onChange={(event) => handleChangeKzPassport(event, 'number')}
                         {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                        placeholder="N12345678"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -305,6 +326,7 @@ export default function UserProfile() {
                         value={kzPassport.idNumber}
                         onChange={(event) => handleChangeKzPassport(event, 'idNumber')}
                         {...invalidFieldKeys.has('passport-idNumber') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789012"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -380,6 +402,7 @@ export default function UserProfile() {
                         value={byPassport.number}
                         onChange={(event) => handleChangeByPassport(event, 'number')}
                         {...invalidFieldKeys.has('passport-number') && { style: { border: "1px solid red" } }}
+                        placeholder="МР1234567"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -537,11 +560,10 @@ export default function UserProfile() {
     }
 
     const handleChangeIndividualEntrepreneurLegalEntity = (
-        event: React.ChangeEvent<HTMLInputElement>,
+        value: string,
         fieldName: keyof UserData['individualEntrepreneurLegalEntity']
     ) => {
 
-        const value = event.target.value
         console.log('IE', fieldName, value)
         let isValid = true
         const newIndividualEntrepreneurLegalEntity = { ...individualEntrepreneurLegalEntity }
@@ -674,7 +696,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.fullName}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'fullName')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'fullName')}
                         {...invalidFieldKeys.has('legalEntity-fullName') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -684,7 +706,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.ogrnip}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'ogrnip')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'ogrnip')}
                         {...invalidFieldKeys.has('legalEntity-ogrnip') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -694,7 +716,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.inn}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'inn')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'inn')}
                         {...invalidFieldKeys.has('legalEntity-inn') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -704,7 +726,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.registrationAddress}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'registrationAddress')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'registrationAddress')}
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -713,7 +735,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.bankName}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'bankName')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'bankName')}
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -722,7 +744,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.checkingAccount}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'checkingAccount')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'checkingAccount')}
                         {...invalidFieldKeys.has('legalEntity-checkingAccount') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -732,7 +754,7 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.bik}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'bik')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'bik')}
                         {...invalidFieldKeys.has('legalEntity-bik') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -742,18 +764,25 @@ export default function UserProfile() {
                         disabled={!legalEntityEditable}
                         className="field"
                         value={individualEntrepreneurLegalEntity.correspondentAccount}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'correspondentAccount')}
+                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'correspondentAccount')}
                         {...invalidFieldKeys.has('legalEntity-correspondentAccount') && { style: { border: "1px solid red" } }}
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                     <label className="input shifted">У вас есть ЭДО?</label>
-                    <input
+                    <CustomSelect
+                        style={{ height: "3.17vh", width: '50%' }}
+                        options={
+                            [
+                                { value: 'diadok', label: 'Да, в Контур Диадок' },
+                                { value: 'sbis', label: 'Да, в СБИС' },
+                                { value: 'both', label: 'И там и там' },
+                                { value: 'no', label: 'Нет ЭДО' },
+                            ]
+                        }
+                        onChange={(value) => handleChangeIndividualEntrepreneurLegalEntity(value, 'edoAvailability')}
                         disabled={!legalEntityEditable}
-                        className="field"
-                        value={individualEntrepreneurLegalEntity.edoAvailability}
-                        onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event, 'edoAvailability')}
-                    />
+                    ></CustomSelect>
                 </div>
             </div>
         </div>
@@ -870,29 +899,37 @@ export default function UserProfile() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                     <label className="input shifted">У вас есть ЭДО?</label>
-                    <input
+                    <CustomSelect
+                        style={{ height: "3.17vh", width: '50%' }}
+                        options={
+                            [
+                                { value: 'diadok', label: 'Да, в Контур Диадок' },
+                                { value: 'sbis', label: 'Да, в СБИС' },
+                                { value: 'both', label: 'И там и там' },
+                                { value: 'no', label: 'Нет ЭДО' },
+                            ]
+                        }
+                        onChange={(value) => handleChangeIndividualEntrepreneurLegalEntity(value, 'edoAvailability')}
                         disabled={!legalEntityEditable}
-                        className="field"
-                        value={String(OOOLegalEntity.edoAvailability)}
-                        onChange={(event) => handleChangeOOOLegalEntity(event, 'edoAvailability')}
-                    />
+                    ></CustomSelect>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                     <label className="input shifted">ООО на УСН или НДС</label>
-                    <div onClick={
-                        () => {
-                            if (!legalEntityEditable) {
-                                return;
+                    <div className="responsive-selector-field" style={legalEntityEditable ? { marginLeft: "2vw", cursor: "pointer" } : { marginLeft: "2vw", cursor: "initial" }}>
+                        <span onClick={() => {
+                            if (legalEntityEditable === false) {
+                                return
                             }
-                            if (OOOLegalEntity.usnOrNds) {
-                                setOOOLegalEntity({ ...OOOLegalEntity, usnOrNds: false })
-                            } else {
-                                setOOOLegalEntity({ ...OOOLegalEntity, usnOrNds: true })
+                            setOOOLegalEntity({ ...OOOLegalEntity, usnOrNds: true })
+                        }} 
+                        className={"responsive-selector" + (OOOLegalEntity.usnOrNds ? " active" : '')} id="0">УСН /</span>
+
+                        <span onClick={() => {
+                            if (legalEntityEditable === false) {
+                                return
                             }
-                        }
-                    } className="responsive-selector-field" style={legalEntityEditable ? { marginLeft: "2vw", cursor: "pointer" } : { marginLeft: "2vw", cursor: "initial" }}>
-                        <span className={"responsive-selector" + (OOOLegalEntity.usnOrNds ? " active" : '')} id="0">УСН /</span>
-                        <span className={"responsive-selector" + (!OOOLegalEntity.usnOrNds ? " active" : '')} id="0"> НДС</span>
+                            setOOOLegalEntity({ ...OOOLegalEntity, usnOrNds: false })
+                        }} className={"responsive-selector" + (!OOOLegalEntity.usnOrNds ? " active" : '')} id="0"> НДС</span>
                     </div>
                 </div>
             </div>
@@ -937,6 +974,7 @@ export default function UserProfile() {
             foreign: foreignPassport,
         }[currentPassportType]
 
+        console.log(passportToSave)
 
         const passportFilesFilled = (
             (passportFiles.firstPage !== undefined || currentPassport.firstPageScanId !== '') && (passportFiles.secondPage !== undefined || currentPassport.secondPageScanId !== '')
@@ -1030,15 +1068,37 @@ export default function UserProfile() {
         }
     }
 
+    const handleChangeUserEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = event.target.value
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+        if (!/^[\p{L}!#-'*+\-/\d=?^-~]+(.[\p{L}!#-'*+\-/\d=?^-~])*@[^@\s]{2,}$/u.test(newEmail)) {
+            newInvalidFieldKeys.add('user-email')
+        } else {
+            newInvalidFieldKeys.delete('user-email')
+        }
+        setUserEmail(newEmail)
+        setInvalidFieldKeys(newInvalidFieldKeys)
+    }
+
+    const handleSaveAdditionalData = async () => {
+        const newUserData = { ...userData }
+        newUserData.email = userEmail
+        newUserData.socials = userSocials
+
+        await updateUserData(username, newUserData)
+    }
+
     return (
         <>
-
-            <div className="docs-section" style={{ paddingTop: "2vh", width: "89.4%" }}>
+            <div className="docs-section" style={{ paddingTop: "2vh", width: "77%" }}>
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", flexDirection: "column", marginTop: "1vh", marginBottom: "1vh", width: "46%" }}>
                         <label className="input shifted">EMAIL ДЛЯ ОТЧЁТОВ</label>
                         <input
                             className="field"
+                            value={userEmail}
+                            onChange={(event) => handleChangeUserEmail(event)}
+                            {...invalidFieldKeys.has('user-email') && { style: { border: "1px solid red" } }}
                         />
                     </div>
 
@@ -1046,6 +1106,8 @@ export default function UserProfile() {
                         <label className="input shifted">СОЦИАЛЬНЫЕ СЕТИ</label>
                         <input
                             className="field"
+                            value={userSocials}
+                            onChange={(event) => setUserSocials(event.target.value)}
                         />
                     </div>
                 </div>
@@ -1053,40 +1115,17 @@ export default function UserProfile() {
                     <button
                         className="bubble"
                         style={{ marginTop: '1vh', border: 'none', cursor: 'pointer', padding: '0', width: '20%' }}
+                        onClick={handleSaveAdditionalData}
                     >СОХРАНИТЬ</button>
                 </div>
-
             </div>
 
-            {/* <div style={{ width: "96.4%" }}>
-                <div className="docs-section" style={{ paddingTop: "2vh" }}>
-                    <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
-                        <label className="input shifted">EMAIL ДЛЯ ОТЧЁТОВ</label>
-                        <input
-                            className="field"
-                        />
-                    </div>
+            <div style={{ height: '3vh', backgroundColor: 'rgba(255, 255, 255, 0.28)', width: '100%', margin: '2vh' }}></div>
 
-                    <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
-                        <label className="input shifted">СОЦИАЛЬНЫЕ СЕТИ</label>
-                        <input
-                            className="field"
-                        />
-                    </div>
-
-                    <div>
-                        <button
-                            className="bubble"
-                            style={{ marginTop: '2vh', border: 'none', cursor: 'pointer', padding: '0' }}
-                        >СОХРАНИТЬ</button>
-                    </div>
-
-                </div>
-            </div> */}
             <div className="user-docs">
-                <div className="docs-section" style={!passportEditable ? { background: 'rgba(255, 255, 255, 0.28)', borderRadius: '30px' } : {}}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', flexDirection: 'row' }}>
-                        <div className="bubble">
+                        <div className="bubble" style={{ width: '35vw', marginTop: '1.5vw', background: 'none' }}>
                             <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
 
                             <CustomSelect
@@ -1114,6 +1153,7 @@ export default function UserProfile() {
                                     },
                                 ]}
                                 disabled={!passportEditable}
+                                style={{ width: '30%', backgroundColor: 'rgba(255, 255, 255, 0)' }}
                             ></CustomSelect>
 
                             <svg onClick={() => setPassportEditable(!passportEditable)} className='icon' width="8%" height="60%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1128,110 +1168,111 @@ export default function UserProfile() {
                             </svg>
                         </div>
                     </div>
+                    <div className="docs-section" style={!passportEditable ? { background: 'rgba(255, 255, 255, 0.28)', borderRadius: '30px' } : {}}>
 
 
-                    {{ ru: ruPassportSection, kz: kzPassportSection, by: byPassportSection, foreign: foreignPassportSection }[currentPassportType]}
+                        {{ ru: ruPassportSection, kz: kzPassportSection, by: byPassportSection, foreign: foreignPassportSection }[currentPassportType]}
 
 
-                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: '2vh' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', marginTop: '2vh' }}>
 
-                        <label className="input shifted">СКАН ПАСПОРТА</label>
+                            <label className="input shifted">СКАН ПАСПОРТА</label>
 
-                        <div style={{ display: 'flex', flexDirection: 'row' }}>
-                            <div className="bubble" style={{ marginRight: '1vw', position: 'relative' }}>
-                                <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
-                                    ...prevState, // Spread the previous state
-                                    firstPage: event.target.files[0]// Set the new value for secondPage
-                                }))} />
-                                <span>ПЕРВАЯ СТРАНИЦА</span>
-                                {(!passportFiles.firstPage && currentPassport.firstPageScanId === '') ? (
-                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                ) : (
-                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
+                            <div style={{ display: 'flex', flexDirection: 'row' }}>
+                                <div className="bubble" style={{ marginRight: '1vw', position: 'relative' }}>
+                                    <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
+                                        ...prevState, // Spread the previous state
+                                        firstPage: event.target.files[0]// Set the new value for secondPage
+                                    }))} />
+                                    <span>ПЕРВАЯ СТРАНИЦА</span>
+                                    {(!passportFiles.firstPage && currentPassport.firstPageScanId === '') ? (
+                                        <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
 
-                            </div>
-                            <div className="bubble" style={{ position: 'relative' }}>
-                                <span>ПРОПИСКА</span>
-                                <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
-                                    ...prevState, // Spread the previous state
-                                    secondPage: event.target.files[0] // Set the new value for secondPage
-                                }))} />
-                                {(!passportFiles.secondPage && currentPassport.secondPageScanId === '') ? (
-                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                ) : (
-                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
+                                </div>
+                                <div className="bubble" style={{ position: 'relative' }}>
+                                    <span>ПРОПИСКА</span>
+                                    <input disabled={!passportEditable} type="file" className="full-cover" onChange={(event) => setPassportFiles(prevState => ({
+                                        ...prevState, // Spread the previous state
+                                        secondPage: event.target.files[0] // Set the new value for secondPage
+                                    }))} />
+                                    {(!passportFiles.secondPage && currentPassport.secondPageScanId === '') ? (
+                                        <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
+                                </div>
                             </div>
                         </div>
+                        {passportEditable ? (
+                            <div>
+                                <button className="bubble" onClick={handleSavePassportData} style={{ marginTop: '2vh', border: 'none', cursor: 'pointer', padding: '0' }} >СОХРАНИТЬ</button>
+                            </div>
+                        ) : <></>}
                     </div>
-                    {passportEditable ? (
-                        <div>
-                            <button className="bubble" onClick={handleSavePassportData} style={{ marginTop: '2vh', border: 'none', cursor: 'pointer', padding: '0' }} >СОХРАНИТЬ</button>
-                        </div>
-                    ) : <></>}
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div className="bubble" style={{ width: '35vw', marginTop: '1.5vw', background: 'none' }}>
+                        <span className="label">РЕКВИЗИТЫ</span>
+                        <CustomSelect
+                            defaultValue={currentLegalEntityType}
+                            onChange={(val) => {
+                                flushLegalEntityInvalidKeys();
+                                setCurrentLegalEntityType(val as 'self' | 'individual' | 'ooo');
+                            }}
+                            options={[
+                                {
+                                    value: 'self',
+                                    label: 'САМОЗАНЯТЫЙ'
+                                },
+                                {
+                                    value: 'individual',
+                                    label: 'ИП'
+                                },
+                                {
+                                    value: 'ooo',
+                                    label: 'ООО'
+                                },
 
-                <div className="docs-section">
-                    <div style={{ display: 'flex', flexDirection: 'row' }}>
-                        <div className="bubble">
+                            ]}
+                            disabled={!legalEntityEditable}
+                            style={{ backgroundColor: 'rgba(255, 255, 255, 0)' }}></CustomSelect>
 
-                            <span className="label">РЕКВИЗИТЫ</span>
-
-                            <CustomSelect
-                                defaultValue={currentLegalEntityType}
-                                onChange={(val) => {
-                                    flushLegalEntityInvalidKeys();
-                                    setCurrentLegalEntityType(val as 'self' | 'individual' | 'ooo');
-                                }}
-                                options={[
-                                    {
-                                        value: 'self',
-                                        label: 'САМОЗАНЯТЫЙ'
-                                    },
-                                    {
-                                        value: 'individual',
-                                        label: 'ИП'
-                                    },
-                                    {
-                                        value: 'ooo',
-                                        label: 'ООО'
-                                    },
-
-                                ]}></CustomSelect>
-
-                            <svg onClick={() => setLegalEntityEditable(!legalEntityEditable)} className='icon' width="8%" height="60%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <g clipPath="url(#clip0_27_61)">
-                                    <path d="M9.00001 5L7.00001 3M1.25 10.75L2.94218 10.562C3.14893 10.539 3.2523 10.5275 3.34892 10.4962C3.43464 10.4685 3.51622 10.4293 3.59144 10.3797C3.67623 10.3238 3.74977 10.2502 3.89686 10.1031L10.5 3.5C11.0523 2.94771 11.0523 2.05228 10.5 1.5C9.94773 0.947714 9.0523 0.947714 8.50001 1.5L1.89686 8.10314C1.74977 8.25023 1.67623 8.32377 1.62032 8.40856C1.57072 8.48378 1.53151 8.56535 1.50376 8.65108C1.47248 8.7477 1.46099 8.85107 1.43802 9.05782L1.25 10.75Z" stroke="#5E5EBF" strokeLinecap="round" strokeLinejoin="round" />
-                                </g>
-                                <defs>
-                                    <clipPath id="clip0_27_61">
-                                        <rect width="12" height="12" fill="white" />
-                                    </clipPath>
-                                </defs>
-                            </svg>
-
-                        </div>
+                        <svg onClick={() => setLegalEntityEditable(!legalEntityEditable)} className='icon' width="8%" height="60%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g clipPath="url(#clip0_27_61)">
+                                <path d="M9.00001 5L7.00001 3M1.25 10.75L2.94218 10.562C3.14893 10.539 3.2523 10.5275 3.34892 10.4962C3.43464 10.4685 3.51622 10.4293 3.59144 10.3797C3.67623 10.3238 3.74977 10.2502 3.89686 10.1031L10.5 3.5C11.0523 2.94771 11.0523 2.05228 10.5 1.5C9.94773 0.947714 9.0523 0.947714 8.50001 1.5L1.89686 8.10314C1.74977 8.25023 1.67623 8.32377 1.62032 8.40856C1.57072 8.48378 1.53151 8.56535 1.50376 8.65108C1.47248 8.7477 1.46099 8.85107 1.43802 9.05782L1.25 10.75Z" stroke="#5E5EBF" strokeLinecap="round" strokeLinejoin="round" />
+                            </g>
+                            <defs>
+                                <clipPath id="clip0_27_61">
+                                    <rect width="12" height="12" fill="white" />
+                                </clipPath>
+                            </defs>
+                        </svg>
                     </div>
 
-                    {{ self: selfEmployedLegalEntitySection, individual: individualEntrepreneurLegalEntitySection, ooo: OOOLegalEntitySection }[currentLegalEntityType]}
+                    <div className="docs-section" style={!legalEntityEditable ? { background: 'rgba(255, 255, 255, 0.28)', borderRadius: '30px' } : {}}>
 
-                    {legalEntityEditable ? (
-                        <div>
-                            <button onClick={handleSaveLegalEntityData} className="bubble" style={{ marginTop: '2vh', border: 'none', cursor: 'pointer', padding: '0' }} >СОХРАНИТЬ</button>
-                        </div>
-                    ) : <></>}
+                        {{ self: selfEmployedLegalEntitySection, individual: individualEntrepreneurLegalEntitySection, ooo: OOOLegalEntitySection }[currentLegalEntityType]}
+
+                        {legalEntityEditable ? (
+                            <div>
+                                <button onClick={handleSaveLegalEntityData} className="bubble" style={{ marginTop: '2vh', border: 'none', cursor: 'pointer', padding: '0' }} >СОХРАНИТЬ</button>
+                            </div>
+                        ) : <></>}
+                    </div>
+
                 </div>
-
             </div>
         </>
     );

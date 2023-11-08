@@ -86,7 +86,7 @@ export default function App() {
                                     {user ? (
                                         <>
                                             <div id="user-name-container">
-                                                <span className="user-name">{user.username}</span>
+                                                <span className="user-name">{user.nickname}</span>
                                             </div>
                                             <Form method="post" action="/logout">
                                                 <button className='logout' type='submit'>ВЫЙТИ</button>

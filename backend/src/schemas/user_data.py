@@ -23,7 +23,8 @@ class RuPassportData(BasePassportData):
     issued_by: str 
     issue_date: str
     code: str
-    registration_date: str
+    registration_address: str
+    snils: str
 
 
 class KzPassportData(BasePassportData):
@@ -103,6 +104,8 @@ class OooLegalEntity(CamelCaseModel):
 class UserData(CamelCaseModel):
     current_passport: Literal['ru', 'kz', 'by', 'foreign']
     current_legal_entity: Literal['self', 'individual', 'ooo']
+    email: str
+    socials: str
     ru_passport: RuPassport
     kz_passport: KzPassport
     by_passport: ByPassport
@@ -114,6 +117,8 @@ class UserData(CamelCaseModel):
 initial_user_data = UserData(
     currentPassport='ru',
     currentLegalEntity='self',
+    email='',
+    socials='',
     ruPassport=RuPassport(
         firstPageScanId='',
         secondPageScanId='',
@@ -124,7 +129,8 @@ initial_user_data = UserData(
             issuedBy='',
             issueDate='',
             code='',
-            registrationDate='',
+            registrationAddress='',
+            snils='',
             first_page_scan_id='',
             second_page_scan_id=''
         ),

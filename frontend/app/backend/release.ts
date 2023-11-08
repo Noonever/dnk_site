@@ -54,7 +54,7 @@ export async function uploadBackCatalogReleaseRequest(
         data: releaseData,
         authors: authors
     }
-    
+        
     try {
         await fastAPI.post(`/release/request`, release)
         return 200
@@ -97,10 +97,10 @@ export async function updateReleaseRequest(id: string, data: ReleaseRequestUpdat
 
 export async function addReleaseRequestToDeliveryTable(id: string): Promise<number | null> {
     try {
-        const response = await fastAPI.post(`/release/add-to-docs/`, {}, { params: {id} })
+        const response = await fastAPI.post(`/release/add-to-delivery/`, {timeout: 100000}, { params: {id} })
         return response.status
     } catch (error) {
-        console.error('Release docs add error:', error);
+        console.error('Release delivery add error:', error);
         return null
     }
 }

@@ -231,8 +231,8 @@ svg.button {
     cursor: pointer;
 }
 
-svg.button:hover {
-    fill: rgba(255, 255, 255, 0.373);
+svg.button:hover path {
+    stroke-opacity: 1;
 }
 
 svg.track-controls {

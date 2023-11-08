@@ -61,6 +61,7 @@ export default function Users() {
             username: "",
             password: "",
         })
+        revalidator.revalidate()
     }
 
     const handleDeleteUser = async (username: string) => {

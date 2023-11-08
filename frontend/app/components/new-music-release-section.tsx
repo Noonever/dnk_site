@@ -544,6 +544,7 @@ export default function NewMusicReleaseSection(
                             onChange={(e) => setReleaseDate(e.target.value)}
                             className="field release"
                             type="date"
+                            style={{ paddingRight: '0px' }}
                         />
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import { Form } from "@remix-run/react";
+import { Form, useActionData, useRouteError } from "@remix-run/react";
 
 import { json, redirect } from "@remix-run/node";
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
@@ -26,17 +26,18 @@ export async function action({ request }: ActionArgs) {
 
     const user = await verifyLogin(String(email), String(password));
     if (!user) {
-        return Error("Invalid login");
-
+        return "Invalid login";
     }
-    
+
     return createUserSession({
         request,
         userName: user.username,
     });
 }
 
-export default function login() {
+export default function Login() {
+    const response = useActionData();
+    console.log(response)
     return (
         <div id="login-container">
             <div id="row-container">
@@ -45,6 +46,7 @@ export default function login() {
                         <div id='form-title-container'>
                             <span id='form-title'>войти в аккаунт</span>
                         </div>
+                        {response && <span style={{ fontFamily: 'Montserrat', fontSize: '17px', color: 'white' }}>Неверный логин или пароль</span>}
                         <Form method="post">
                             <div id='login-form'>
                                 <input
@@ -53,7 +55,6 @@ export default function login() {
                                     className="input-field"
                                     type="text"
                                     placeholder="логин"
-
                                 >
                                 </input>
                                 <input
@@ -73,10 +74,7 @@ export default function login() {
                     <img id='logo' src={logo} alt="logo" />
                     <div id='logo-text-container'>
                         <span id='logo-text'>
-                            КАБИНЕТ
-                        </span>
-                        <span id='logo-text'>
-                            АРТИСТА
+                            КАБИНЕТ АРТИСТА
                         </span>
                     </div>
                 </div>
