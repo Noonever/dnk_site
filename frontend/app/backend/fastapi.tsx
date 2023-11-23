@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const fastAPI = axios.create({
-    baseURL: 'http://185.234.10.244:8000',
+    baseURL: 'http://178.253.23.244:8000',
     timeout: 20000,
 });
 

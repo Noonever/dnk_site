@@ -1,3 +1,4 @@
+from pprint import pprint
 from fastapi import APIRouter, HTTPException, Response
 from ..db.user_data import update_user_data, get_user_data
 from ..db.user import get_user_by_username, verify_user
@@ -35,19 +36,37 @@ async def update(username: str, data: UserData):
         new_user_data['ooo_legal_entity'],
     ]
 
-    passport_filled = False
-    legal_entity_filled = False
-
     for passport in user_passports:
-        if all(passport.values()) == True:
-            passport_filled = True
+        passport_filled = True
+        pprint(passport)
+        print('\n')
+        data = passport['data']
+        for value in passport.values():
+            if value == '':
+                passport_filled = False
+                break
+        for value in data.values():
+            if value == '':
+                passport_filled = False
+                break
+        if passport_filled:
             break
+    
+    print('passport_filled', passport_filled)
 
     for legal_entity in user_legal_entities:
-        if all(legal_entity.values()) == True:
-            legal_entity_filled = True
+        legal_entity_filled = True
+        pprint(legal_entity)
+        print('\n')
+        for value in legal_entity.values():
+            if value == '':
+                legal_entity_filled = False
+                break
+        if legal_entity_filled:
             break
-        
+    
+    print('legal_entity_filled', legal_entity_filled)
+
     if passport_filled and legal_entity_filled:
         await verify_user(username=username)
 

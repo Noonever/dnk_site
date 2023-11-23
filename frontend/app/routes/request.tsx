@@ -40,15 +40,24 @@ export default function ReleaseRequest() {
                 cursor: "pointer",
                 backgroundColor: "rgba(255, 255, 255, 0.24)",
                 padding: "10px",
-                textAlign: "center",
                 height: '30vh',
                 width: '60%',
                 borderRadius: "30px",
-                display: "flex",
-                alignItems: "center",
                 marginTop: "10%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center"
+
             }} onClick={() => navigate('/me')}>
-                <span style={{ textAlign: "center", width: '100%' }} className="info-text">Для отправки заявок необходимо заполнить данные в профиле</span>
+                <div style={{height: '60%', display: "flex", flexDirection: "column", gap: "20%", paddingTop: '10%', textAlign: "center" }}>
+                    <div>
+                        <span style={{ textAlign: "center", width: '100%' }} className="info-text">Для отправки заявок необходимо</span>
+                    </div>
+                    <div>
+                        <span style={{ textAlign: "center", width: '100%' }} className="info-text"> заполнить данные в профиле артиста</span>
+                    </div>
+                </div>
             </div>
         );
     }

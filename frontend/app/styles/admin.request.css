@@ -427,6 +427,7 @@ input.back-catalog {
     margin-left: 0.5vw;
     height: 3.196313vh;
     width: 14.94841269vw;
+    border: 1px solid black;
 }
 
 .modal {
@@ -447,4 +448,3 @@ input.back-catalog {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
 }
-

@@ -59,6 +59,7 @@ export interface ReleaseRequest {
     date: string;
     imprint: string;
     inDeliverySheet: boolean;
+    inDocsSheet: boolean;
     type: "new-music" | "back-catalog" | "clip";
     status: 'pending' | 'accepted' | 'error';
     data: NewMusicReleaseUpload | BackCatalogReleaseUpload | ClipReleaseUpload;

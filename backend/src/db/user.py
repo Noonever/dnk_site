@@ -1,4 +1,6 @@
 from unittest import result
+
+from ..utils.password import hash_password
 from .client import db
 from .utils import change_mongo_id_to_str
 from .user_data import initialize_user_data
@@ -56,5 +58,16 @@ async def change_link_upload_permission(username: str):
     user['_id'] = username
     del user['username']
     print('user after', user)
+    result = await users.replace_one({"_id": username}, user)
+    return str(result.upserted_id)
+
+
+async def change_password(username: str, password: str):
+    user = await get_user_by_username(username=username)
+    if user is None:
+        return None
+    user['password_hash'] = hash_password(password)
+    user['_id'] = username
+    del user['username']
     result = await users.replace_one({"_id": username}, user)
     return str(result.upserted_id)

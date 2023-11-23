@@ -63,3 +63,13 @@ export async function changeLinkUploadPermission(username: string) {
         console.log(error)
     }
 }
+
+
+export async function changePassword(username: string, password: string) {
+    try {
+        await fastAPI.post(`/user/password`, { username, password })
+    } catch (error) {
+        console.log(error)
+    }
+}
+

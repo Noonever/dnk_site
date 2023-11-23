@@ -301,6 +301,7 @@ select option[selected] {
 }
 
 .selected-value {
+  font-size: 15px;
   padding-left: 2vw;
   flex: 1;
   white-space: nowrap;
@@ -345,6 +346,7 @@ select option[selected] {
   transition: background-color 0.3s;
   cursor: pointer;
   padding-left: 7%;
+  font-size: 15px;  
 }
 
 .option:hover {

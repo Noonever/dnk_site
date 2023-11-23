@@ -12,6 +12,7 @@ class BasePassportData(CamelCaseModel):
     full_name: str 
     birth_date: str
     number: str
+    registration_address: str
 
 
 class BasePassport(CamelCaseModel):
@@ -23,7 +24,6 @@ class RuPassportData(BasePassportData):
     issued_by: str 
     issue_date: str
     code: str
-    registration_address: str
     snils: str
 
 
@@ -37,7 +37,6 @@ class KzPassportData(BasePassportData):
 class ByPassportData(BasePassportData):
     issued_by: str 
     issue_date: str
-    registration_address: str
 
 
 class ForeignPassportData(BasePassportData):
@@ -46,7 +45,6 @@ class ForeignPassportData(BasePassportData):
     issued_by: str 
     issue_date: str
     end_date: str
-    registration_address: str
 
 
 class RuPassport(BasePassport):
@@ -147,7 +145,8 @@ initial_user_data = UserData(
             issueDate='',
             endDate='',
             first_page_scan_id='',
-            second_page_scan_id=''
+            second_page_scan_id='',
+            registrationAddress=''
         ),
     ),
     byPassport=ByPassport(

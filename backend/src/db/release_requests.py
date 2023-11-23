@@ -3,10 +3,23 @@ from .client import db
 from .utils import change_mongo_id_to_str
 
 release_requests = db['release_requests']
+processed_requests = db['processed_requests']
+
 
 async def add_release_request(release_request: dict):
     result = await release_requests.insert_one(release_request)
     return result.inserted_id
+
+
+async def add_processed_request(release_request: dict):
+    result = await processed_requests.insert_one(release_request)
+    return result.inserted_id
+
+
+async def get_processed_requests(username: str):
+    result = await processed_requests.find({"username": username}).to_list(None)
+    requests = change_mongo_id_to_str(result)
+    return requests
 
 
 async def get_release_requests():
@@ -31,11 +44,13 @@ async def update_release_request(id: str, data: dict) -> dict | None:
     new_imprint: str = data.get('imprint', request.get('imprint'))
     new_data: dict = data.get('data', request.get('data'))
     in_delivery_sheet: bool = data.get('in_delivery_sheet', request.get('in_delivery_sheet'))
+    in_docs_sheet: bool = data.get('in_docs_sheet', request.get('in_docs_sheet'))
 
     request['date'] = new_date
     request['imprint'] = new_imprint
     request['data'] = new_data
     request['in_delivery_sheet'] = in_delivery_sheet
+    request['in_docs_sheet'] = in_docs_sheet
     del request['id']
 
     await release_requests.replace_one({"_id": ObjectId(id)}, request)

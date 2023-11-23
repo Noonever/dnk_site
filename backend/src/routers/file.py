@@ -1,4 +1,4 @@
-from pathlib import Path
+from PIL import Image
 from datetime import datetime
 import shutil
 from typing import Literal
@@ -6,12 +6,11 @@ from fastapi import APIRouter, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 
 from ..db.file import add_file, get_file_by_id
+from ..config import download_dir
 
 
 file_router = APIRouter(prefix="/file", tags=["file"])
-from ..config import download_dir
 
-file_extensions = {'wav': 'wav', 'text': 'txt', 'cover': 'jpg'}
 
 @file_router.post('/')
 async def upload(file: UploadFile):
@@ -19,11 +18,22 @@ async def upload(file: UploadFile):
     file_extension = file.filename.split(".")[-1]
     file_id = await add_file({'upload_datetime': upload_datetime, 'name': file.filename, 'extension': file_extension})
     
-    filename = f'{file_id}.{file_extension}'
     try:
         download_dir.mkdir(parents=True, exist_ok=True)
-        with open(download_dir/filename, 'wb') as buffer:
-            shutil.copyfileobj(file.file, buffer)
+
+        # Check if the file is an image
+        if file_extension.lower() in ['jpeg', 'png', 'bmp', 'tiff', 'gif']:
+            # Convert image to jpg
+            image = Image.open(file.file)
+            image = image.convert("RGB")
+            filename = f'{file_id}.jpg'  # Change the file extension to jpg
+            with open(download_dir/filename, 'wb') as buffer:
+                image.save(buffer, format="JPEG")
+        else:
+            # Save the file as it is
+            filename = f'{file_id}.{file_extension}'
+            with open(download_dir/filename, 'wb') as buffer:
+                shutil.copyfileobj(file.file, buffer)
 
         return {"id": file_id}
     

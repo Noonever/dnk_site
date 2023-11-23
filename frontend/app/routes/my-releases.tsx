@@ -1,9 +1,20 @@
 import type { LinksFunction, LoaderArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { useEffect, useState } from "react";
+import { getProcessedReleaseRequests } from "~/backend/release";
 import styles from "~/styles/my-releases.css";
 import styles2 from "~/styles/request.single.css";
+import { formatDate } from "~/utils/format";
 import { requireUserName } from "~/utils/session.server";
+
+//@ts-ignore
+export const meta: MetaFunction = () => {
+    return [
+        { title: "DNK | Мои релизы" },
+        { name: "description", content: "Добро пожаловать в DNK" },
+    ];
+};
+
 
 export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: styles }, { rel: "stylesheet", href: styles2 }];
@@ -30,7 +41,6 @@ type processedMusicReleaseData = {
     version: string,
     genre: string,
     coverLink: string,
-    date: string,
     tracks: processedTrackData[],
 }
 
@@ -47,7 +57,7 @@ type processedBackCatalogTrackData = {
     musicAuthorsNames: string,
     lyricistsNames: string,
     phonogramProducersNames: string,
-    ISRC: string,
+    isrc: string,
 }
 
 type processedBackCatalogReleaseData = {
@@ -56,14 +66,11 @@ type processedBackCatalogReleaseData = {
     version: string,
     genre: string,
     coverLink: string,
-    date: string,
-    UPC: string,
-    source: string,
+    upc: string,
     tracks: processedBackCatalogTrackData[],
 }
 
 type processedClipReleaseData = {
-    date: string,
     performers: string,
     title: string,
     version: string,
@@ -79,22 +86,25 @@ type processedClipReleaseData = {
 
 type processedRelease = {
     id: string,
-    type: "music" | "clip" | "back-catalog",
+    type: "new-music" | "clip" | "back-catalog",
     data: processedMusicReleaseData | processedBackCatalogReleaseData | processedClipReleaseData,
+    date: string,
 }
 
-export async function loader({ request }: LoaderArgs): Promise<{ userReleases: processedRelease[] }> {
-    const userId = await requireUserName(request);
-    
-    return [];
+export async function loader({ request }: LoaderArgs): Promise<processedRelease[]> {
+    const username = await requireUserName(request);
+    const processedRequests = await getProcessedReleaseRequests(username);
+    console.log(processedRequests)
+    return processedRequests;
 }
 
 export default function MyReleases() {
 
     const data = useLoaderData<typeof loader>();
-    const userProcessedReleases = data.userReleases
+    const userProcessedReleases = data
 
-    const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
+    const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | undefined>(undefined);
+    console.log(selectedReleaseIndex)
     const [filteredIndices, setFilteredIndices] = useState<number[]>([]);
 
     const [filter, setFilter] = useState("")
@@ -114,7 +124,8 @@ export default function MyReleases() {
 
     }, [filter, userProcessedReleases]);
 
-    const renderMusicRelease = (releaseData: processedMusicReleaseData) => {
+    const renderMusicRelease = (release: processedRelease) => {
+        const releaseData = release.data as processedMusicReleaseData
         return (
             <div className="my-releases">
 
@@ -170,7 +181,7 @@ export default function MyReleases() {
                         </div>
                     </div>
 
-                    <svg onClick={() => setSelectedReleaseIndex(null)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg onClick={() => setSelectedReleaseIndex(undefined)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21.25 12.5V10C21.25 6.54822 18.4518 3.75 15 3.75C11.5482 3.75 8.75 6.54822 8.75 10V12.5M15 18.125V20.625M11 26.25H19C21.1002 26.25 22.1503 26.25 22.9525 25.8413C23.6581 25.4817 24.2317 24.9081 24.5913 24.2025C25 23.4003 25 22.3502 25 20.25V18.5C25 16.3998 25 15.3497 24.5913 14.5475C24.2317 13.8419 23.6581 13.2683 22.9525 12.9087C22.1503 12.5 21.1002 12.5 19 12.5H11C8.8998 12.5 7.8497 12.5 7.04754 12.9087C6.34193 13.2683 5.76825 13.8419 5.40873 14.5475C5 15.3497 5 16.3998 5 18.5V20.25C5 22.3502 5 23.4003 5.40873 24.2025C5.76825 24.9081 6.34193 25.4817 7.04754 25.8413C7.8497 26.25 8.8998 26.25 11 26.25Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
 
@@ -178,7 +189,7 @@ export default function MyReleases() {
                         <label className="input shifted">ДАТА РЕЛИЗА</label>
                         <div className="row-field-input-container">
                             <input
-                                defaultValue={releaseData.date}
+                                defaultValue={formatDate(release.date)}
                                 disabled={true}
                                 className="field release"
                                 style={{ borderRadius: "30px" }}
@@ -303,7 +314,7 @@ export default function MyReleases() {
                                     <div className="load-row">
                                         <div className="load-file">
                                             <label className="input">.WAV</label>
-                                            <a className="full-cover" href={track.wavLink}>{track.wavLink}</a>
+                                            <a className="full-cover" target="_blank" rel="noreferrer" href={track.wavLink}>{track.wavLink}</a>
                                             {false ? (
                                                 <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -317,11 +328,11 @@ export default function MyReleases() {
                                     </div>
 
                                     {/* text file */}
-                                    <div className="load-row">
+                                    <div className="load-row" >
                                         <div className="load-file">
                                             <label className="input">ТЕКСТ</label>
-                                            <a className="full-cover" href={track.textLink}>{track.textLink}</a>
-                                            {false ? (
+                                            <a className="full-cover" href={track.textLink ? track.textLink : undefined}>{track.textLink}</a>
+                                            {!track.textLink ? (
                                                 <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
@@ -341,7 +352,7 @@ export default function MyReleases() {
                                 <div className="right-track-field">
                                     <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ</label>
                                     <input
-                                        defaultValue={track.performers}
+                                        defaultValue={track.performersNames}
                                         disabled={true}
                                         className="track-field"
                                         type="text"
@@ -391,7 +402,8 @@ export default function MyReleases() {
         )
     }
 
-    const renderBackCatalogRelease = (releaseData: processedBackCatalogReleaseData) => {
+    const renderBackCatalogRelease = (release: processedRelease) => {
+        const releaseData = release.data as processedBackCatalogReleaseData
         return (
             <div className="my-releases">
 
@@ -447,7 +459,7 @@ export default function MyReleases() {
                         </div>
                     </div>
 
-                    <svg onClick={() => setSelectedReleaseIndex(null)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg onClick={() => setSelectedReleaseIndex(undefined)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21.25 12.5V10C21.25 6.54822 18.4518 3.75 15 3.75C11.5482 3.75 8.75 6.54822 8.75 10V12.5M15 18.125V20.625M11 26.25H19C21.1002 26.25 22.1503 26.25 22.9525 25.8413C23.6581 25.4817 24.2317 24.9081 24.5913 24.2025C25 23.4003 25 22.3502 25 20.25V18.5C25 16.3998 25 15.3497 24.5913 14.5475C24.2317 13.8419 23.6581 13.2683 22.9525 12.9087C22.1503 12.5 21.1002 12.5 19 12.5H11C8.8998 12.5 7.8497 12.5 7.04754 12.9087C6.34193 13.2683 5.76825 13.8419 5.40873 14.5475C5 15.3497 5 16.3998 5 18.5V20.25C5 22.3502 5 23.4003 5.40873 24.2025C5.76825 24.9081 6.34193 25.4817 7.04754 25.8413C7.8497 26.25 8.8998 26.25 11 26.25Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
 
@@ -455,7 +467,7 @@ export default function MyReleases() {
                         <label className="input shifted">ДАТА РЕЛИЗА</label>
                         <div className="row-field-input-container">
                             <input
-                                defaultValue={releaseData.date}
+                                defaultValue={formatDate(release.date)}
                                 disabled={true}
                                 className="field release"
                                 style={{ borderRadius: "30px" }}
@@ -486,14 +498,14 @@ export default function MyReleases() {
 
                     </div>
                     {/* release back catalog */}
-                    <div className='back-catalog-fields'>
+                    <div className='back-catalog-fields' style={{height: '7.93vh'}}>
 
                         {/* Release UPC */}
                         <div className="back-catalog-field">
                             <label className="input">UPC: </label>
                             <input
                                 disabled={true}
-                                defaultValue={releaseData.UPC}
+                                defaultValue={releaseData.upc}
                                 className="back-catalog"
                             />
                         </div>
@@ -503,17 +515,7 @@ export default function MyReleases() {
                             <label className="input">ДАТА РЕЛИЗА: </label>
                             <input
                                 disabled={true}
-                                defaultValue={releaseData.date}
-                                className="back-catalog"
-                            />
-                        </div>
-
-                        {/* Release source */}
-                        <div className="back-catalog-field">
-                            <label className="input">ИСХОДНИКИ: </label>
-                            <input
-                                disabled={true}
-                                defaultValue={releaseData.source}
+                                defaultValue={formatDate(release.date)}
                                 className="back-catalog"
                             />
                         </div>
@@ -680,7 +682,7 @@ export default function MyReleases() {
                                 <label className="input">ISRC: </label>
                                 <input
                                     disabled={true}
-                                    defaultValue={track.ISRC}
+                                    defaultValue={track.isrc}
                                     className="back-catalog"
                                 />
                             </div>
@@ -694,7 +696,8 @@ export default function MyReleases() {
         )
     }
 
-    const renderClipRelease = (releaseData: processedClipReleaseData) => {
+    const renderClipRelease = (release: processedRelease) => {
+        const releaseData = release.data as processedClipReleaseData
         return (
             <div className="my-releases">
 
@@ -747,7 +750,7 @@ export default function MyReleases() {
                         </div>
                     </div>
 
-                    <svg onClick={() => setSelectedReleaseIndex(null)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg onClick={() => setSelectedReleaseIndex(undefined)} style={{ marginLeft: '2vw', marginRight: '2vw', marginTop: '3.5vh', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21.25 12.5V10C21.25 6.54822 18.4518 3.75 15 3.75C11.5482 3.75 8.75 6.54822 8.75 10V12.5M15 18.125V20.625M11 26.25H19C21.1002 26.25 22.1503 26.25 22.9525 25.8413C23.6581 25.4817 24.2317 24.9081 24.5913 24.2025C25 23.4003 25 22.3502 25 20.25V18.5C25 16.3998 25 15.3497 24.5913 14.5475C24.2317 13.8419 23.6581 13.2683 22.9525 12.9087C22.1503 12.5 21.1002 12.5 19 12.5H11C8.8998 12.5 7.8497 12.5 7.04754 12.9087C6.34193 13.2683 5.76825 13.8419 5.40873 14.5475C5 15.3497 5 16.3998 5 18.5V20.25C5 22.3502 5 23.4003 5.40873 24.2025C5.76825 24.9081 6.34193 25.4817 7.04754 25.8413C7.8497 26.25 8.8998 26.25 11 26.25Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
 
@@ -755,7 +758,7 @@ export default function MyReleases() {
                         <label className="input shifted">ДАТА РЕЛИЗА</label>
                         <div className="row-field-input-container">
                             <input
-                                defaultValue={releaseData.date}
+                                defaultValue={formatDate(release.date)}
                                 disabled={true}
                                 className="field release"
                                 style={{ borderRadius: "30px" }}
@@ -852,20 +855,15 @@ export default function MyReleases() {
         )
     }
 
-    if (selectedReleaseIndex !== null) {
+    if (selectedReleaseIndex !== undefined) {
         const selectedRelease = userProcessedReleases[selectedReleaseIndex];
-        if (selectedRelease.type === 'music') {
-            //@ts-ignore
-            const data: processedMusicReleaseData = selectedRelease.data;
-            return renderMusicRelease(data)
+        console.log(selectedRelease)
+        if (selectedRelease.type === 'new-music') {
+            return renderMusicRelease(selectedRelease)
         } else if (selectedRelease.type === 'back-catalog') {
-            //@ts-ignore
-            const data: processedBackCatalogReleaseData = selectedRelease.data;
-            return renderBackCatalogRelease(data)
+            return renderBackCatalogRelease(selectedRelease)
         } else if (selectedRelease.type === 'clip') {
-            //@ts-ignore
-            const data: processedClipReleaseData = selectedRelease.data;
-            return renderClipRelease(data)
+            return renderClipRelease(selectedRelease)
         }
     }
 
@@ -957,7 +955,7 @@ export default function MyReleases() {
                                 <label className="input shifted">ДАТА РЕЛИЗА</label>
                                 <div className="row-field-input-container">
                                     <input
-                                        defaultValue={release.data.date}
+                                        defaultValue={formatDate(release.date)}
                                         disabled={true}
                                         className="field release"
                                         style={{ borderRadius: "30px" }}

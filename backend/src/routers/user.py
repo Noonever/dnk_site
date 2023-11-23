@@ -2,26 +2,15 @@ from pprint import pprint
 from unittest import result
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Body
-
-from passlib.context import CryptContext
+from pydantic import BaseModel
 
 from ..schemas import UserAdd, UserLogin, UserOut
-from ..db.user import add_user, get_user_by_username, get_all, delete_user, change_link_upload_permission
+from ..db.user import add_user, get_user_by_username, get_all, delete_user, change_link_upload_permission, change_password
 
 from .utils import convert_keys_to_camel_case
+from ..utils.password import hash_password, verify_password
 
 user_router = APIRouter(prefix="/user", tags=["user"])
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
 
 @user_router.post("/")
 async def add(user: UserAdd):
@@ -33,13 +22,24 @@ async def add(user: UserAdd):
         "is_admin": False,
         "link_upload": False
     }
-
     try:
         username = await add_user(user_to_add)
     except:
         raise HTTPException(status_code=400, detail="User already exists")
 
     return {"username": username}
+
+
+class PasswordChange(BaseModel):
+    username: str
+    password: str
+
+@user_router.post("/password")
+async def change(data: PasswordChange):
+    result = await change_password(data.username, data.password)
+    if result == None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return 200
 
 
 @user_router.post("/login", response_model=UserOut)

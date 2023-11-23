@@ -8,15 +8,16 @@ interface Option {
 interface CustomSelectProps {
     options: Option[];
     defaultValue?: string;
+    defaultLabel?: string;
     onChange: (selectedValue: string) => void;
     style?: any
     disabled?: boolean
 }
 
-const CustomSelect: React.FC<CustomSelectProps> = ({ options, defaultValue, onChange, style, disabled }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ options, defaultLabel, defaultValue, onChange, style, disabled }) => {
     const [selectedOption, setSelectedOption] = useState<Option>({
-        label: options[0].label,
-        value: options[0].value,
+        label: defaultLabel || options[0].label,
+        value: defaultValue || options[0].value,
     });
     const [isOpen, setIsOpen] = useState(false);
     const selectRef = useRef<HTMLDivElement>(null);

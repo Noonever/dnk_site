@@ -104,3 +104,15 @@ export async function addReleaseRequestToDeliveryTable(id: string): Promise<numb
         return null
     }
 }
+
+export async function getProcessedReleaseRequests(username: string) {
+    try {
+        const response = await fastAPI.get('/release/processed-requests', { params: { username } })
+        console.log(response)
+        const requests = response.data
+        return requests
+    } catch (error) {
+        console.error('Releases get error:', error);
+        return []
+    }
+}

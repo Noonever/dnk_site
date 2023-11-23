@@ -56,7 +56,7 @@ export default function SingleReleaseRequest() {
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
     const [releaseVersion, setReleaseVersion] = useState("");
-    const [releaseGenre, setReleaseGenre] = useState("Жанр 1");
+    const [releaseGenre, setReleaseGenre] = useState("African");
     const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
     const [releaseLink, setReleaseLink] = useState("")
 
@@ -82,6 +82,7 @@ export default function SingleReleaseRequest() {
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
     const [modalIsOpened, setModalIsOpened] = useState(false);
+    const [successModalIsOpened, setSuccessModalIsOpened] = useState(false);
 
     const [authorIsSolo, setAuthorIsSolo] = useState(true);
     const [fullNameToAdd, setFullNameToAdd] = useState('');
@@ -357,7 +358,10 @@ export default function SingleReleaseRequest() {
             )
             if (response === 200) {
                 setModalIsOpened(false)
-                alert('Заявка успешно отправлена')
+                setSuccessModalIsOpened(true)
+                setTimeout(() => {
+                    setSuccessModalIsOpened(false)
+                }, 3000)
                 flushForm()
             }
         } catch (error) {
@@ -439,7 +443,7 @@ export default function SingleReleaseRequest() {
             } else if (fieldName === 'number') {
                 isValid = kzPassportNumberRePattern.test(value) || value === ''
             } else if (fieldName === 'idNumber') {
-                isValid = /^d{12}&/.test(value) || value === ''
+                isValid = /^\d{12}$/.test(value) || value === ''
             }
 
             if (!isValid) {
@@ -727,12 +731,21 @@ export default function SingleReleaseRequest() {
                             />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
-                            <label className="input shifted">Дата регистрации</label>
+                            <label className="input shifted">Адрес регистрации</label>
                             <input
                                 className="field"
                                 value={ruPassport.registrationAddress}
-                                type={"date"}
                                 onChange={(event) => handleChangeCurrentPassport('registrationAddress', event.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                            <label className="input shifted">Снилс</label>
+                            <input
+                                className="field"
+                                value={ruPassport.snils}
+                                onChange={(event) => handleChangeCurrentPassport('snils', event.target.value)}
+                                placeholder="123-456-789 01"
+                                {...invalidFieldKeys.has('passport-snils') && { style: { border: "1px solid red" } }}
                             />
                         </div>
                     </div>
@@ -751,8 +764,10 @@ export default function SingleReleaseRequest() {
                                 value={kzPassport.fullName}
                                 onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
                                 {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+
                             />
                         </div>
+
                         <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
                             <label className="input shifted">Дата рождения</label>
                             <input
@@ -969,11 +984,21 @@ export default function SingleReleaseRequest() {
         return (
             <>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '1%', justifyContent: 'space-between', marginTop: '2vh' }}>
-                    <div className="bubble" style={{ width: '100%' }}>
-                        <span className="label">ПАСПОРТНЫЕ ДАННЫЕ</span>
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
+                        <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>ПАСПОРТНЫЕ ДАННЫЕ</span>
 
                         <CustomSelect
+                            style={{}}
                             onChange={(value) => handleChangeCurrentPassportType(value as 'ru' | 'kz' | 'by' | 'foreign')}
+                            defaultValue={authorDocsForm.passportType}
+                            defaultLabel={
+                                {
+                                    ru: 'РФ',
+                                    kz: 'КЗ',
+                                    by: 'РБ',
+                                    foreign: 'ИНОСТРАННЫЙ',
+                                }[authorDocsForm.passportType]
+                            }
                             options={
                                 [
                                     { value: 'ru', label: 'РФ' },
@@ -984,7 +1009,7 @@ export default function SingleReleaseRequest() {
                             }
                         ></CustomSelect>
                     </div>
-                    <div className="bubble" onClick={() => setEditableAuthorIndex(null)} style={{ width: '1%', cursor: 'pointer' }}>X</div>
+                    <div className="bubble" onClick={() => setEditableAuthorIndex(null)} style={{ width: 'calc(4vh - 2.1vw)', height: '4vh', cursor: 'pointer' }}>X</div>
                 </div>
                 {passportSection}
             </>
@@ -997,22 +1022,30 @@ export default function SingleReleaseRequest() {
         }
 
         return (
-            <div className="docs-section">
+            <div className="docs-section" style={{ width: '70%' }}>
                 {renderPassport()}
-                <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginTop: '3.7vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <label className="input downgap" style={{ margin: '0' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
+                        <label className="input downgap" style={{ marginBottom: '0.5vw' }}>УСЛОВИЯ ПЕРЕДАЧИ ПРАВ*</label>
                         <div className="responsive-selector-field" style={{ margin: '0' }}>
                             <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: true })} className={"responsive-selector" + (authorDocsForm.licenseOrAlienation ? " active" : '')} id="0">ЛИЦЕНЗИЯ /</span>
                             <span onClick={() => setAuthorDocsForm({ ...authorDocsForm, licenseOrAlienation: false })} className={"responsive-selector" + (!authorDocsForm.licenseOrAlienation ? " active" : '')} id="0"> ОТЧУЖДЕНИЕ</span>
                         </div>
-                    </div >
+                    </div>
                 </div>
                 <div style={{ marginTop: '4vh', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'row' }}>
                         <CustomSelect
-                            style={{ padding: '6px', paddingLeft: '0.5vw', paddingRight: '20px', height: '3vh', border: '1px solid white', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
+                            style={{ width: '120%', padding: '6px', paddingLeft: '0.5vw', paddingRight: '20px', height: '3vh', border: '1px solid white', borderRadius: authorDocsForm.paymentType == 'free' ? '30px   ' : '30px 0px 0px 30px' }}
                             defaultValue={authorDocsForm.paymentType}
+                            defaultLabel={
+                                {
+                                    'royalty': 'РОЯЛТИ',
+                                    'free': 'БЕЗВОЗМЕЗДНО',
+                                    'sum': 'ФИКС. СУММА',
+                                    'other': 'ДРУГОЕ',
+                                }[authorDocsForm.paymentType]
+                            }
                             onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentType: e as 'royalty' | 'free' | 'sum' | 'other' })}
                             options={[
                                 {
@@ -1037,7 +1070,7 @@ export default function SingleReleaseRequest() {
                             <input
                                 value={authorDocsForm.paymentValue}
                                 onChange={(e) => setAuthorDocsForm({ ...authorDocsForm, paymentValue: e.target.value })}
-                                style={{ padding: '6px', paddingLeft: '0.5vw', width: '5vw', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
+                                style={{ padding: '6px', paddingLeft: '0.5vw', width: '10vw', height: '3vh', borderRadius: '0px 30px 30px 0px', border: '1px solid white' }}
                                 placeholder={{ 'royalty': '70%', 'sum': '500р', 'other': '' }[authorDocsForm.paymentType]}
                             ></input>
                         )}
@@ -1095,6 +1128,29 @@ export default function SingleReleaseRequest() {
                 <div className="overlay">
                     <div className="modal">
                         <span>Загрузка</span>
+                    </div>
+                </div>
+            )}
+
+            {successModalIsOpened && (
+                <div className="overlay">
+                    <div className="modal" style={{
+                        backgroundColor: "rgba(88,92,154,255)",
+                        padding: "10px",
+                        height: '30vh',
+                        width: '60vw',
+                        borderRadius: "30px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1001
+                    }}>
+                        <div style={{ height: '60%', display: "flex", flexDirection: "column", gap: "20%", paddingTop: '10%', textAlign: "center" }}>
+                            <div>
+                                <span style={{ textAlign: "center", width: '100%' }} className="info-text">ЗАЯВКА УСПЕШНО ОТПРАВЛЕНА</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -7,6 +7,7 @@ import type { ReleaseRequest, NewMusicTrackUpload, NewMusicReleaseUpload, Releas
 
 import ReleaseGenreOptions from "./release-genres";
 import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~/utils/regexp";
+import { useNavigate } from "@remix-run/react";
 
 
 interface NewMusicTrackForm extends NewMusicTrackUpload {
@@ -22,6 +23,8 @@ export default function NewMusicReleaseSection(
 
     const request = props.request
     const data: NewMusicReleaseUpload = request.data as NewMusicReleaseUpload;
+
+    const navigate = useNavigate()
 
     const [releaseDate, setReleaseDate] = useState(request.date);
     const [releaseImprint, setReleaseImprint] = useState(request.imprint);
@@ -468,6 +471,7 @@ export default function NewMusicReleaseSection(
             if (response !== null) {
                 setModalIsOpened(false)
                 console.log(response)
+                navigate('/admin/requests')
             }
         } catch (error) {
             // Handle network errors

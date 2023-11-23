@@ -106,6 +106,7 @@ svg.track-controls {
 
 svg.track-controls-first {
     margin-top: 3.9vh;
+    cursor: pointer;
 }
 
 input.field.pending {

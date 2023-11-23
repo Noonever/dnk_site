@@ -45,7 +45,6 @@ class BackCatalogReleaseUpload(CamelCaseModel):
     genre: str
     upc: str
     date: str
-    source: str
     tracks: List[BackCatalogTrackUpload]
     cover_file_id: str
 
@@ -82,9 +81,10 @@ class ReleaseUploadRequest(CamelCaseModel):
     date: str = ''
     imprint: str = ''
     in_delivery_sheet: bool = False
+    in_docs_sheet: bool = False
     status: Literal['pending', 'accepted', 'error'] = 'pending'
     type: Literal["new-music", "back-catalog", "clip"]
-    data: Union[NewMusicReleaseUpload, BackCatalogReleaseUpload, ClipReleaseUpload]
+    data: Union[BackCatalogReleaseUpload, NewMusicReleaseUpload, ClipReleaseUpload]
     authors: list[Author]
 
 
@@ -95,4 +95,4 @@ class ReleaseRequestOut(ReleaseUploadRequest):
 class ReleaseRequestUpdate(CamelCaseModel):
     date: str
     imprint: str
-    data: Union[NewMusicReleaseUpload, BackCatalogReleaseUpload, ClipReleaseUpload]
+    data: Union[BackCatalogReleaseUpload, NewMusicReleaseUpload, ClipReleaseUpload]

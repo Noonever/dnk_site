@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "~/styles/admin.request.css";
 import styles2 from "~/styles/admin.requests.css";
 import { getReleaseRequests, addReleaseRequestToDeliveryTable } from "~/backend/release";
+import { formatDate } from "~/utils/format";
 
 export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: styles }, { rel: "stylesheet", href: styles2 }];
@@ -41,18 +42,6 @@ export default function Requests() {
 
     }, [filter, requests]);
 
-    function formatDate(inputDate: string) {
-        const parts = inputDate.split('-');
-        if (inputDate === '') {
-            return '';
-        }
-        if (parts.length === 3) {
-            return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        } else {
-            // Handle invalid input
-            return 'Invalid date format';
-        }
-    }
 
     async function handleAddRequestToDeliveryTable(id: string, inDeliverySheet: boolean) {
         if (inDeliverySheet) {
@@ -153,7 +142,7 @@ export default function Requests() {
                                     </div>
                                 </div>
 
-                                {/* release version */}
+                                {/* release date */}
                                 <div className="row-field">
                                     {index === 0 ? <label className="input shifted bold">ДАТА РЕЛИЗА</label> : null}
                                     <div className="row-field-input-container">
@@ -177,6 +166,15 @@ export default function Requests() {
                                 </div>
                                 <svg className={index === 0 ? "track-controls-first" : "track-controls"} onClick={() => navigate(`/admin/release-requests/${release.id}`)} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M15.6316 8.31136C15.2356 7.91535 15.0376 7.71734 14.9634 7.48901C14.8981 7.28817 14.8981 7.07182 14.9634 6.87098C15.0376 6.64265 15.2356 6.44464 15.6316 6.04862L18.47 3.21025C17.7168 2.86962 16.8806 2.67999 16.0002 2.67999C12.6865 2.67999 10.0002 5.36628 10.0002 8.67999C10.0002 9.17103 10.0592 9.64829 10.1705 10.1051C10.2896 10.5942 10.3492 10.8388 10.3387 10.9933C10.3276 11.1551 10.3035 11.2411 10.2289 11.3851C10.1576 11.5226 10.0211 11.6591 9.74804 11.9322L3.50023 18.18C2.6718 19.0084 2.6718 20.3516 3.50023 21.18C4.32865 22.0084 5.6718 22.0084 6.50023 21.18L12.748 14.9322C13.0211 14.6591 13.1576 14.5226 13.2951 14.4514C13.4391 14.3768 13.5251 14.3526 13.6869 14.3416C13.8414 14.331 14.086 14.3906 14.5751 14.5097C15.0319 14.621 15.5092 14.68 16.0002 14.68C19.3139 14.68 22.0002 11.9937 22.0002 8.67999C22.0002 7.79958 21.8106 6.96347 21.47 6.21025L18.6316 9.04862C18.2356 9.44464 18.0376 9.64265 17.8092 9.71684C17.6084 9.78209 17.3921 9.78209 17.1912 9.71684C16.9629 9.64265 16.7649 9.44464 16.3689 9.04862L15.6316 8.31136Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <svg onClick={() => {
+                                    if (release.date === '' || release.imprint === '') {
+                                        alert('Заполните дату и импринт')
+                                    } else {
+                                        alert('Докс')
+                                    }
+                                }} className={index === 0 ? "track-controls-first" : "track-controls"} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="29" height="29" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M24.1663 15.1066V8.21914C24.1663 6.18895 24.1663 5.17385 23.7712 4.39842C23.4237 3.71633 22.8691 3.16178 22.1871 2.81424C21.4116 2.41914 20.3965 2.41914 18.3663 2.41914H10.633C8.60282 2.41914 7.58772 2.41914 6.81229 2.81424C6.1302 3.16178 5.57565 3.71633 5.22811 4.39842C4.83301 5.17385 4.83301 6.18895 4.83301 8.21914V20.7858C4.83301 22.816 4.83301 23.8311 5.22811 24.6065C5.57565 25.2886 6.1302 25.8432 6.81229 26.1907C7.58772 26.5858 8.60276 26.5858 10.6328 26.5858H15.1038M16.9163 13.2941H9.66634M12.083 18.1275H9.66634M19.333 8.4608H9.66634M18.1247 22.9608L21.7497 26.5858M21.7497 26.5858L25.3747 22.9608M21.7497 26.5858V19.3358" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                                 <svg onClick={() => {
                                     if (release.date === '' || release.imprint === '') {
