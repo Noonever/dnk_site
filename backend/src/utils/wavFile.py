@@ -35,6 +35,7 @@ def convert_wav_to_mp3(file_id: str) -> Path():
         audio = AudioSegment.from_wav(wav_path)
         # Export as MP3
         audio.export(mp3_path, format="mp3")
+        return mp3_path
     
     except Exception as e:
         logger.error(f"Error processing {wav_path.name}: {e}")
