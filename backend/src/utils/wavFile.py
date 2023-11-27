@@ -6,9 +6,6 @@ from loguru import logger
 
 from ..config import download_dir, temp_dir
 
-download_dir.mkdir(parents=True, exist_ok=True)
-temp_dir.mkdir(parents=True, exist_ok=True)
-
 def format_duration(seconds):
     minutes = int(seconds // 60)
     seconds = int(seconds % 60)
@@ -31,6 +28,7 @@ def get_wav_duration(file_id: str):
 
 
 def convert_wav_to_mp3(file_id: str) -> Path():
+    temp_dir.mkdir(parents=True, exist_ok=True)
     wav_path = download_dir/f"{file_id}.wav"
     mp3_path = temp_dir/f"{file_id}.mp3"
     try:
