@@ -6,6 +6,9 @@ from loguru import logger
 
 from ..config import download_dir, temp_dir
 
+download_dir.mkdir(parents=True, exist_ok=True)
+temp_dir.mkdir(parents=True, exist_ok=True)
+
 def format_duration(seconds):
     minutes = int(seconds // 60)
     seconds = int(seconds % 60)
