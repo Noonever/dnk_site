@@ -27,7 +27,7 @@ def get_wav_duration(file_id: str):
         return None
 
 
-def convert_wav_to_mp3(file_id: str) -> Path():
+def convert_wav_to_mp3(file_id: str) -> Path:
     temp_dir.mkdir(parents=True, exist_ok=True)
     wav_path = download_dir/f"{file_id}.wav"
     mp3_path = temp_dir/f"{file_id}.mp3"

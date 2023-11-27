@@ -65,7 +65,7 @@ async def upload_request(id: str):
 
 
 @release_router.post('/add-to-delivery')
-async def add_to_docs(id: str):
+async def add_to_delivery(id: str):
     data_rows = []
 
     request = await get_release_request_by_id(id)
@@ -144,30 +144,35 @@ async def add_to_docs(id: str):
         track_title = f"{index+1:02}. {track.get('performers')} - {track.get('title')}{track_version_alias}"
 
         wav_file_id = track.get('wav_file_id')
-        wav_file_path =  f"{yadisk_media_dirs['wav']}/{track_title}.wav"
-        yadisk.upload_file(download_dir/f'{wav_file_id}.wav', wav_file_path)
-
-        processed_track['wavLink'] = yadisk.publish(wav_file_path)
+        wav_file_public_path =  f"{yadisk_media_dirs['wav']}/{track_title}.wav"
+        wav_file_local_path = download_dir/f'{wav_file_id}.wav'
+        yadisk.upload_file(wav_file_local_path, wav_file_public_path)
+        wav_file_local_path.unlink(missing_ok=True)
+        processed_track['wavLink'] = yadisk.publish(wav_file_public_path)
         del processed_track['wav_file_id']
 
-        mp3_file_path = f"{yadisk_media_dirs['mp3']}/{track_title}.mp3"
-        yadisk.upload_file(convert_wav_to_mp3(wav_file_id), mp3_file_path)
+        mp3_file_public_path = f"{yadisk_media_dirs['mp3']}/{track_title}.mp3"
+        mp3_file_local_path = convert_wav_to_mp3(wav_file_id)
+        yadisk.upload_file(mp3_file_local_path, mp3_file_public_path)
+        mp3_file_local_path.unlink(missing_ok=True)
 
         text_file_id = track.get('text_file_id')
         del processed_track['text_file_id']
         processed_track['textLink'] = ''
-        if text_file_id is not None:
-            text_file_path = f"{yadisk_media_dirs['lyrics']}/{track_title}.docx"
 
-            yadisk.upload_file(download_dir/f'{text_file_id}.docx', text_file_path)
-            processed_track['textLink'] = yadisk.publish(text_file_path)
+        if text_file_id is not None:
+            text_file_public_path = f"{yadisk_media_dirs['lyrics']}/{track_title}.docx"
+            text_file_local_path = download_dir/f'{text_file_id}.docx'
+            yadisk.upload_file(text_file_local_path, text_file_public_path)
+            processed_track['textLink'] = yadisk.publish(text_file_public_path)
+            text_file_local_path.unlink(missing_ok=True)
         
         if release_type != 'Single':
             wav_public_link = yadisk.publish(yadisk_media_dirs['wav'])
             mp3_public_link = yadisk.publish(yadisk_media_dirs['mp3'])
         else:
-            wav_public_link = yadisk.publish(wav_file_path)
-            mp3_public_link = yadisk.publish(mp3_file_path)
+            wav_public_link = yadisk.publish(wav_file_public_path)
+            mp3_public_link = yadisk.publish(mp3_file_public_path)
         
         splitted_date = request.get('date').split('-')
         actual_date = f'{splitted_date[2]}.{splitted_date[1]}.{splitted_date[0]}'
@@ -205,11 +210,9 @@ async def add_to_docs(id: str):
     processed_request['data']['coverLink'] = cover_public_link
     del processed_request['data']['cover_file_id']
 
-    pprint.pprint(processed_request)
-
     write_rows_to_google_sheet(data_rows)
     
     await add_processed_request(processed_request)
     await update_release_request(id, {'in_delivery_sheet': True})
-    
+
     return Response(status_code=200)
