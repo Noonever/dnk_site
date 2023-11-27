@@ -1,5 +1,4 @@
 import pprint
-import re
 from fastapi import APIRouter, HTTPException, Response
 from loguru import logger
 
@@ -78,6 +77,8 @@ async def add_to_docs(id: str):
     release_title = request_data.get('title')
     release_imprint = request.get('imprint')
     release_date = request.get('date')
+    release_performers = request_data.get('performers')
+    release_version = request_data.get('version')
 
     release_upc = request_data.get('upc', '')
 
@@ -85,7 +86,11 @@ async def add_to_docs(id: str):
 
     if release_date is None or release_imprint is None:
         raise HTTPException(status_code=400, detail="Delivery date and imprint are required")
-    
+
+    if release_type == 'clip':
+        logger.debug('Not implemented: clip')
+        return
+
     tracks: list = request_data.get('tracks')
 
     username = request.get('username')
@@ -99,8 +104,11 @@ async def add_to_docs(id: str):
     else:
         release_type = 'Full Length'
 
+    version_string = f' - {release_version}' if release_version else ''
+    source_folder_public_name = f'{user_nickname} - {release_performers} - {release_title}{version_string}'
+
     artist_path = f'requests-media/{user_nickname}'
-    source_path = f'{artist_path}/{release_title}'
+    source_path = f'{artist_path}/{source_folder_public_name}'
     yadisk.create_service_dir(artist_path)
     yadisk.create_service_dir(source_path)
     source_public_link = yadisk.publish(source_path)
@@ -164,7 +172,7 @@ async def add_to_docs(id: str):
         splitted_date = request.get('date').split('-')
         actual_date = f'{splitted_date[2]}.{splitted_date[1]}.{splitted_date[0]}'
 
-        data_row[0] = request.get('data').get('performers')
+        data_row[0] = release_performers
         data_row[1] = track.get('performers')
         data_row[2] = track.get('title')
         data_row[3] = track.get('version')
