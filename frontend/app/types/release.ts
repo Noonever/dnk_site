@@ -44,13 +44,14 @@ export interface ClipReleaseUpload {
     title: string;
     version: string | null;
     genre: string;
-    releaseLink: string;
+    explicit: boolean;
     performersNames: string;
     musicAuthorsNames: string;
     lyricistsNames: string;
     phonogramProducersNames: string;
     directorsNames: string;
     coverFileId: string;
+    videoFileId: string;
 }
 
 export interface ReleaseRequest {

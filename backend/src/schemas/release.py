@@ -10,7 +10,24 @@ class CamelCaseModel(BaseModel):
         alias_generator = to_camel
 
 
-class NewMusicTrackUpload(CamelCaseModel):
+class TrackFilesMixin(CamelCaseModel):
+    wav_file_id: str
+    text_file_id: Optional[str]
+
+
+class CoverFileMixin(CamelCaseModel):
+    cover_file_id: str
+
+
+class VideoFileMixin(CamelCaseModel):
+    video_file_id: str
+
+
+class CloudLinkMixin(CamelCaseModel):
+    cloud_link: str
+
+
+class NewMusicTrackBaseUpload(CamelCaseModel):
     title: str 
     performers: str 
     version: Optional[str]
@@ -21,46 +38,71 @@ class NewMusicTrackUpload(CamelCaseModel):
     music_authors_names: str
     lyricists_names: Optional[str]
     phonogram_producers_names: str
-    wav_file_id: str
-    text_file_id: Optional[str]
 
 
-class BackCatalogTrackUpload(NewMusicTrackUpload):
+class NewMusicTrackFilesUpload(NewMusicTrackBaseUpload, TrackFilesMixin):
+    pass
+
+
+class BackCatalogTrackBaseUpload(NewMusicTrackBaseUpload):
     isrc: str
 
 
-class NewMusicReleaseUpload(CamelCaseModel):
+class BackCatalogTrackFileUpload(BackCatalogTrackBaseUpload, TrackFilesMixin):
+    pass
+
+
+class NewMusicReleaseBaseUpload(CamelCaseModel):
     performers: str
     title: str
     version: Optional[str]
     genre: str
-    tracks: List[NewMusicTrackUpload]
-    cover_file_id: str
+    
+
+class NewMusicReleaseFileUpload(CoverFileMixin, NewMusicReleaseBaseUpload):
+    tracks: List[NewMusicTrackFilesUpload]
 
 
-class BackCatalogReleaseUpload(CamelCaseModel):
+class NewMusicReleaseCloudUpload(CloudLinkMixin, NewMusicReleaseBaseUpload):
+    tracks: List[NewMusicTrackBaseUpload]
+
+
+class BackCatalogReleaseBaseUpload(CamelCaseModel):
     performers: str
     title: str
     version: Optional[str]
     genre: str
     upc: str
     date: str
-    tracks: List[BackCatalogTrackUpload]
-    cover_file_id: str
+    
+
+class BackCatalogReleaseFileUpload(CoverFileMixin, BackCatalogReleaseBaseUpload):
+    tracks: List[BackCatalogTrackFileUpload]
 
 
-class ClipReleaseUpload(CamelCaseModel):
+class BackCatalogReleaseCloudUpload(CloudLinkMixin, BackCatalogReleaseBaseUpload):
+    tracks: List[BackCatalogTrackBaseUpload]
+
+
+class ClipReleaseBaseUpload(CamelCaseModel):
     performers: str
     title: str
     version: Optional[str]
     genre: str
-    release_link: str
+    explicit: bool
     performers_names: str
     music_authors_names: str
     lyricists_names: Optional[str]
     phonogram_producers_names: str
     directors_names: str
-    cover_file_id: str
+
+
+class ClipReleaseFileUpload(CoverFileMixin, VideoFileMixin, ClipReleaseBaseUpload):
+    pass
+
+
+class ClipReleaseCloudUpload(CloudLinkMixin, ClipReleaseBaseUpload):
+    pass
 
 
 class AuthorDocs(CamelCaseModel):
@@ -76,23 +118,30 @@ class Author(CamelCaseModel):
     data: Union[AuthorDocs, str]
 
 
-class ReleaseUploadRequest(CamelCaseModel):
+class ReleaseBaseUploadRequest(CamelCaseModel):
     username: str
     date: str = ''
     imprint: str = ''
     in_delivery_sheet: bool = False
     in_docs_sheet: bool = False
     status: Literal['pending', 'accepted', 'error'] = 'pending'
-    type: Literal["new-music", "back-catalog", "clip"]
-    data: Union[BackCatalogReleaseUpload, NewMusicReleaseUpload, ClipReleaseUpload]
+    type: Literal["new-music", "back-catalog", "clip"] 
     authors: list[Author]
 
 
-class ReleaseRequestOut(ReleaseUploadRequest):
+class ReleaseFileUploadRequest(ReleaseBaseUploadRequest):
+    data: Union[NewMusicReleaseFileUpload, BackCatalogReleaseFileUpload, ClipReleaseFileUpload]
+
+
+class ReleaseCloudUploadRequest(ReleaseBaseUploadRequest):
+    data: Union[NewMusicReleaseCloudUpload, BackCatalogReleaseCloudUpload, ClipReleaseCloudUpload]
+
+
+class ReleaseRequestOut(ReleaseFileUploadRequest):
     id: str
 
 
 class ReleaseRequestUpdate(CamelCaseModel):
     date: str
     imprint: str
-    data: Union[BackCatalogReleaseUpload, NewMusicReleaseUpload, ClipReleaseUpload]
+    data: Union[BackCatalogReleaseFileUpload, NewMusicReleaseFileUpload, ClipReleaseFileUpload]

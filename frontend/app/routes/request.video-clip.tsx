@@ -20,9 +20,11 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 
-import { fullNamesRePattern, linkRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
+import { fullNamesRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
 
 import CustomSelect from "~/components/select";
+import { User } from "~/types/user";
+import { getUserByUsername } from "~/backend/user";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
@@ -32,6 +34,7 @@ const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
 const ruPassportNumberRePattern = /^\d{4} \d{6}$/
 const ruCodeRePattern = /^\d{3}-\d{3}$/
 const snilsRePattern = /^\d{3}-\d{3}-\d{3} \d{2}$/
+const cloudLinkRePattern = /^https:\/\/[\w.-]+(?:\/[\w.-]+)*$/
 
 //@ts-ignore
 export const meta: MetaFunction = () => {
@@ -45,20 +48,29 @@ export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: passportStyles }, { rel: "stylesheet", href: styles }];
 };
 
-export async function loader({ request }: LoaderArgs): Promise<string> {
-    const userId = await requireUserName(request);
-    return userId;
+export async function loader({ request }: LoaderArgs): Promise<{ username: string, user: User }> {
+    const username = await requireUserName(request);
+    const user = await getUserByUsername(username);
+    if (!user) {
+        throw new Response("Not found", { status: 404 });
+    }
+    return { username, user };
 }
 
 export default function SingleReleaseRequest() {
-    const userId = useLoaderData<typeof loader>();
+    const data = useLoaderData<typeof loader>();
+    const { username, user } = data;
+
+    const cloudUpload: boolean = user.linkUpload
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
     const [releaseVersion, setReleaseVersion] = useState("");
     const [releaseGenre, setReleaseGenre] = useState("African");
     const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
-    const [releaseLink, setReleaseLink] = useState("")
+    const [releaseVideoFile, setReleaseVideoFile] = useState<File | undefined>(undefined);
+    const [cloudLink, setCloudLink] = useState<string | undefined>(undefined);
+
 
     const defaultClip: {
         performersNames: string,
@@ -66,12 +78,14 @@ export default function SingleReleaseRequest() {
         lyricistsNames: string,
         phonogramProducersNames: string,
         directorsNames: string,
+        explicit: boolean,
     } = {
         performersNames: "",
         musicAuthorsNames: "",
         lyricistsNames: "",
         phonogramProducersNames: "",
         directorsNames: "",
+        explicit: false,
     }
 
     const [clipForms, setClipForms] = useState([
@@ -161,19 +175,51 @@ export default function SingleReleaseRequest() {
         }
     }
 
-    const handleChangeReleaseLink = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChangeReleaseVideoFile = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
-        const releaseLink = event.target.value
+        //@ts-ignore
+        const file = event.target.files[0];
+
+        const validVideoFormats = [
+            "video/mp4",
+            "video/webm",
+            "video/ogg",
+            "video/mkv",
+            "video/flv",
+            "video/avi",
+            "video/wmv",
+            "video/mov",
+            "video/mpeg"
+        ];
+
+        if (validVideoFormats.includes(file.type)) {
+            setReleaseVideoFile(file);
+        } else {
+            alert("Неверный формат файла");
+            setReleaseVideoFile(undefined);
+        }
+    }
+
+    const handleChangeCloudLink = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+        const cloudLink = event.target.value
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
 
-        if (!linkRePattern.test(releaseLink) && releaseLink !== '') {
-            newInvalidFieldKeys.add(`release-link`)
+        if (!cloudLinkRePattern.test(cloudLink) && cloudLink !== '') {
+            newInvalidFieldKeys.add(`cloudLink`)
         } else {
-            newInvalidFieldKeys.delete(`release-link`)
+            newInvalidFieldKeys.delete(`cloudLink`)
         }
 
+        setCloudLink(cloudLink);
         setInvalidFieldKeys(newInvalidFieldKeys)
-        setReleaseLink(releaseLink);
+    }
+
+    const handleChangeClipIsExplicit = (trackId: number, value: boolean) => {
+        // no validation
+        const newTrackForms = [...clipForms];
+        newTrackForms[trackId].explicit = value
+        setClipForms(newTrackForms);
     }
 
     const handleChangeClipPerformersNames = (event: React.ChangeEvent<HTMLInputElement>, trackId: number) => {
@@ -272,7 +318,6 @@ export default function SingleReleaseRequest() {
         setReleasePerformers("")
         setReleaseVersion("")
         setReleaseGenre("")
-        setReleaseLink("")
         setClipForms([defaultClip])
         setReleaseCoverFile(undefined)
         flushPassportInvalidKeys()
@@ -299,6 +344,11 @@ export default function SingleReleaseRequest() {
             return
         }
         if (releaseCoverFile === undefined) {
+            err_notificate()
+            return
+        }
+
+        if (releaseVideoFile === undefined) {
             err_notificate()
             return
         }
@@ -334,25 +384,27 @@ export default function SingleReleaseRequest() {
         const clip = clipForms[0]
 
         const coverFileId = await uploadFile(releaseCoverFile)
+        const videoFileId = await uploadFile(releaseVideoFile)
 
         const clipRelease: ClipReleaseUpload = {
             title: releaseTitle,
             performers: releasePerformers,
             version: releaseVersion,
             genre: releaseGenre,
-            releaseLink: releaseLink,
+            explicit: clip.explicit,
             performersNames: clip.performersNames,
             musicAuthorsNames: clip.musicAuthorsNames,
             lyricistsNames: clip.lyricistsNames,
             phonogramProducersNames: clip.phonogramProducersNames,
             directorsNames: clip.directorsNames,
-            coverFileId: coverFileId
+            coverFileId: coverFileId,
+            videoFileId: videoFileId,
         }
 
         try {
             setModalIsOpened(true)
             const response = await uploadClipReleaseRequest(
-                userId,
+                username,
                 clipRelease,
                 authorsToSend
             )
@@ -1161,7 +1213,7 @@ export default function SingleReleaseRequest() {
                 {/* release performers */}
                 <div className="row-field" >
 
-                    <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1189,7 +1241,7 @@ export default function SingleReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
+                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span style={{ color: 'red' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1243,9 +1295,9 @@ export default function SingleReleaseRequest() {
                 {/* release genre */}
                 <div
                     className="release-genre-selector"
-                    {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red" } } : null}
+                    {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red", marginRight: "0px" } } : { style: { marginRight: "0px" } }}
                 >
-                    <label className="input genre">ЖАНР*</label>
+                    <label className="input genre">ЖАНР <span style={{ color: 'red' }}>*</span></label>
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
@@ -1256,51 +1308,84 @@ export default function SingleReleaseRequest() {
                     </select>
                 </div>
 
-                {/* release cover */}
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="release-cover-selector">
-                                <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                                <label className="input cover">ОБЛОЖКА*</label>
-                                {!releaseCoverFile ? (
-                                    <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                ) : (
-                                    <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            Remix / prod.by / Acoustic и т.д х
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+
+                {cloudUpload ? (
+                    <>
+                        <div className="right-track-field" style={{ width: "20vw" }}>
+                            <label className="input shifted">ИСХОДНИКИ <span style={{ color: 'red' }}>*</span></label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <input
+                                            value={cloudLink}
+                                            onChange={(e) => handleChangeCloudLink(e)}
+                                            className="track-field"
+                                            {...invalidFieldKeys.has(`cloudLink`) ? { style: { border: "1px solid red" } } : null}
+                                            placeholder="https://www.example.com"
+                                            type="text"
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Ссылка на папку с исходниками.<br></br>
+                                        Поддерживаются Google Drive, Яндекс Диск и другие.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* release cover */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="release-cover-selector" >
+                                        <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
+                                        <label className="input cover">ОБЛОЖКА <span style={{ color: 'red' }}>*</span></label>
+                                        {!releaseCoverFile ? (
+                                            <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Remix / prod.by / Acoustic и т.д х
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* release video */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="release-cover-selector">
+                                        <input accept=".mp4,.webm,.ogg,.mkv,.flv,.avi,.wmv,.mov,.mpeg" onChange={handleChangeReleaseVideoFile} type="file" className="full-cover" />
+                                        <label className="input cover">ВИДЕО КЛИПА <span style={{ color: 'red' }}>*</span></label>
+                                        {!releaseVideoFile ? (
+                                            <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Видеофайл клипа.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </>
+                )}
 
 
-                {/* release link */}
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label className="input shifted">ССЫЛКА НА КЛИП*</label>
-                                <input
-                                    value={releaseLink}
-                                    onChange={(e) => handleChangeReleaseLink(e)}
-                                    {...invalidFieldKeys.has(`release-link`) ? { style: { border: "1px solid red" } } : null}
-                                    className="back-catalog"
-                                    type="text"
-                                />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            Remix / prod.by / Acoustic и т.д х
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
             </div>
 
             {clipForms.map((clipForm, index) => {
@@ -1308,25 +1393,46 @@ export default function SingleReleaseRequest() {
                     <div key={index} style={{ width: '100%' }}>
                         <div className="clip-form">
                             <div className="right-track-fields">
+                                <center>
 
-                                {/* track performers names */}
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div>
+                                                    <label className="input downgap">В КЛИПЕ ЕСТЬ МАТ? <span style={{ color: 'red' }}>*</span></label>
+                                                    <div className="responsive-selector-field">
+                                                        <span onClick={() => handleChangeClipIsExplicit(index, true)} className={"responsive-selector" + (clipForm.explicit ? " active" : '')} id="0">ДА /</span>
+                                                        <span onClick={() => handleChangeClipIsExplicit(index, false)} className={"responsive-selector" + (!clipForm.explicit ? " active" : '')} id="0"> НЕТ</span>
+                                                    </div>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                Выберите “Да” в том случае, если в произведении есть нецензурная лексика.
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+
+                                    {/* track performers names */}
+
+                                </center>
+
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
+                                                <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     value={clipForm.performersNames}
                                                     onChange={(e) => handleChangeClipPerformersNames(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Remix / prod.by / Acoustic и т.д х
+                                            Реальные ФИО исполнителей. Eсли их несколько - укажите через запятую.<br></br>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -1336,19 +1442,19 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
+                                                <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     value={clipForm.musicAuthorsNames}
                                                     onChange={(e) => handleChangeClipMusicAuthors(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-musicAuthors`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Remix / prod.by / Acoustic и т.д х
+                                            Реальные ФИО авторов музыки. Eсли их несколько - укажите через запятую.<br></br>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -1364,13 +1470,13 @@ export default function SingleReleaseRequest() {
                                                     onChange={(e) => handleChangeClipLyricists(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-lyricists`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Remix / prod.by / Acoustic и т.д х
+                                            Реальные ФИО авторов слов. Eсли их несколько - укажите через запятую.<br></br>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -1380,19 +1486,19 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
+                                                <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     value={clipForm.phonogramProducersNames}
                                                     onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-phonogramProducers`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Remix / prod.by / Acoustic и т.д х
+                                            Реальные ФИО изготовителей фонограммы. Eсли их несколько - укажите через запятую.<br></br>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -1402,26 +1508,26 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО РЕЖИССЁРОВ*</label>
+                                                <label className="input shifted">ФИО РЕЖИССЁРОВ <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     value={clipForm.directorsNames}
                                                     onChange={(e) => handleChangeClipDirectorsNames(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-directorsNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Remix / prod.by / Acoustic и т.д х
+                                            Реальные ФИО режиссёров. Eсли их несколько - укажите через запятую.<br></br>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
 
                             </div>
                         </div>
-                    </div>
+                    </div >
                 )
             })}
 
@@ -1441,6 +1547,6 @@ export default function SingleReleaseRequest() {
                 </div>
 
             </div>
-        </div>
+        </div >
     )
 }

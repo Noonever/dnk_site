@@ -23,6 +23,8 @@ import {
 import { fullNamesRePattern, multipleNicknamesRePattern, tenDigitsRePattern, timeRePattern } from "~/utils/regexp";
 
 import CustomSelect from "~/components/select";
+import { User } from "~/types/user";
+import { getUserByUsername } from "~/backend/user";
 
 const fullNameRePattern = fullNamesRePattern
 const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
@@ -31,6 +33,7 @@ const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
 const ruPassportNumberRePattern = /^\d{4} \d{6}$/
 const ruCodeRePattern = /^\d{3}-\d{3}$/
 const snilsRePattern = /^\d{3}-\d{3}-\d{3} \d{2}$/
+const cloudLinkRePattern = /^https:\/\/[\w.-]+(?:\/[\w.-]+)*$/
 
 //@ts-ignore
 export const meta: MetaFunction = () => {
@@ -44,19 +47,27 @@ export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: passportStyles }, { rel: "stylesheet", href: styles }];
 };
 
-export async function loader({ request }: LoaderArgs): Promise<string> {
-    const userId = await requireUserName(request);
-    return userId;
+export async function loader({ request }: LoaderArgs): Promise<{ username: string, user: User }> {
+    const username = await requireUserName(request);
+    const user = await getUserByUsername(username);
+    if (!user) {
+        throw new Response("Not found", { status: 404 });
+    }
+    return { username, user };
 }
 
 export default function AlbumReleaseRequest() {
-    const userId = useLoaderData<typeof loader>();
+    const data = useLoaderData<typeof loader>();
+    const { username, user } = data;
+
+    const cloudUpload: boolean = user.linkUpload
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
     const [releaseVersion, setReleaseVersion] = useState("");
     const [releaseGenre, setReleaseGenre] = useState("African");
     const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
+    const [cloudLink, setCloudLink] = useState<string | undefined>(undefined);
     const [releaseUPC, setReleaseUPC] = useState("")
     const [releaseDate, setReleaseDate] = useState("")
 
@@ -204,6 +215,21 @@ export default function AlbumReleaseRequest() {
         const releaseDate = event.target.value
 
         setReleaseDate(releaseDate);
+    }
+
+    const handleChangeCloudLink = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+        const cloudLink = event.target.value
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+
+        if (!cloudLinkRePattern.test(cloudLink) && cloudLink !== '') {
+            newInvalidFieldKeys.add(`cloudLink`)
+        } else {
+            newInvalidFieldKeys.delete(`cloudLink`)
+        }
+
+        setCloudLink(cloudLink);
+        setInvalidFieldKeys(newInvalidFieldKeys)
     }
 
     const handleChangeTrackPerformers = (event: React.ChangeEvent<HTMLInputElement>, trackId: number) => {
@@ -625,7 +651,7 @@ export default function AlbumReleaseRequest() {
             setModalIsOpened(true)
             console.log(backCatalogRelease)
             const response = await uploadBackCatalogReleaseRequest(
-                userId,
+                username,
                 backCatalogRelease,
                 authorsToSend
             )
@@ -1434,7 +1460,7 @@ export default function AlbumReleaseRequest() {
                 {/* release performers */}
                 <div className="row-field" >
 
-                    <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1463,7 +1489,7 @@ export default function AlbumReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА*</label>
+                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span style={{ color: 'red' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1518,7 +1544,7 @@ export default function AlbumReleaseRequest() {
                     className="release-genre-selector"
                     {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red" } } : null}
                 >
-                    <label className="input genre">ЖАНР*</label>
+                    <label className="input genre">ЖАНР <span style={{ color: 'red' }}>*</span></label>
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
@@ -1528,29 +1554,55 @@ export default function AlbumReleaseRequest() {
                     </select>
                 </div>
 
-                {/* release cover */}
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="release-cover-selector">
-                                <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                                <label className="input cover">ОБЛОЖКА*</label>
-                                {!releaseCoverFile ? (
-                                    <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                ) : (
-                                    <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            Обложка в формате jpeg 3000x3000.
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                {cloudUpload ? (
+                    <>
+                        <div className="right-track-field" style={{ width: "20vw" }}>
+                            <label className="input shifted">ИСХОДНИКИ <span style={{ color: 'red' }}>*</span></label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <input
+                                            value={cloudLink}
+                                            onChange={(e) => handleChangeCloudLink(e)}
+                                            className="track-field"
+                                            {...invalidFieldKeys.has(`cloudLink`) ? { style: { border: "1px solid red" } } : null}
+                                            placeholder="https://www.example.com"
+                                            type="text"
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Ссылка на папку с исходниками.<br></br>
+                                        Поддерживаются Google Drive, Яндекс Диск и другие.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </>
+                ) : (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="release-cover-selector">
+                                    <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
+                                    <label className="input cover">ОБЛОЖКА <span style={{ color: 'red' }}>*</span></label>
+                                    {!releaseCoverFile ? (
+                                        <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                Обложка в формате jpeg 3000x3000.
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+
 
                 {/* release back catalog */}
                 <div className='back-catalog-fields' style={{ height: 'auto' }}>
@@ -1612,7 +1664,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track performers */}
                                 <div className="row-field" >
-                                    <label className="input shifted">ИСПОЛНИТЕЛИ*</label>
+                                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
                                     <div className="row-field-input-container" style={{ marginBottom: '2vh' }}>
                                         <TooltipProvider>
                                             <Tooltip>
@@ -1642,7 +1694,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track title */}
                                 <div className="row-field">
-                                    <label className="input shifted">НАЗВАНИЕ ТРЕКА*</label>
+                                    <label className="input shifted">НАЗВАНИЕ ТРЕКА <span style={{ color: 'red' }}>*</span></label>
                                     <div className="row-field-input-container">
                                         <TooltipProvider>
                                             <Tooltip>
@@ -1735,7 +1787,7 @@ export default function AlbumReleaseRequest() {
                                 <div id='upper-left-track-fields'>
 
                                     {/* explicit */}
-                                    <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ?*</label>
+                                    <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ? <span style={{ color: 'red' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1772,7 +1824,7 @@ export default function AlbumReleaseRequest() {
                                     </TooltipProvider>
 
                                     {/* isCover */}
-                                    <label className="input downgap">КАВЕР?</label>
+                                    <label className="input downgap">КАВЕР? <span style={{ color: 'red' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1788,67 +1840,70 @@ export default function AlbumReleaseRequest() {
                                     </TooltipProvider>
                                 </div>
 
-                                <div className="lower-left-track-fields">
+                                {!cloudUpload && (
+                                    <div className="lower-left-track-fields">
 
-                                    {/* wav file */}
-                                    <div className="load-row">
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="load-file">
-                                                        <label className="input">.WAV*</label>
-                                                        <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
-                                                        {!trackForm.wavFile ? (
-                                                            <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    Wav файл трека (перед отправкой рекомендуем проверить корректность версии трека, а также целостность файла).
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </div>
+                                        {/* wav file */}
+                                        <div className="load-row">
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="load-file">
+                                                            <label className="input">.WAV <span style={{ color: 'red' }}>*</span></label>
+                                                            <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
+                                                            {!trackForm.wavFile ? (
+                                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Wav файл трека (перед отправкой рекомендуем проверить корректность версии трека, а также целостность файла).
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
 
-                                    {/* text file */}
-                                    <div className="load-row">
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="load-file">
-                                                        <label className="input">ТЕКСТ</label>
-                                                        <input accept=".docx" onChange={(e) => handleChangeTrackTextFile(e, index)} type="file" className="full-cover" />
-                                                        {!trackForm.textFile ? (
-                                                            <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    Текст трека в формате .docx (word) (перед отправкой необходимо убедиться в том, что текст в документе соответствует словам песни).
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        {/* text file */}
+                                        <div className="load-row">
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="load-file">
+                                                            <label className="input">ТЕКСТ</label>
+                                                            <input accept=".docx" onChange={(e) => handleChangeTrackTextFile(e, index)} type="file" className="full-cover" />
+                                                            {!trackForm.textFile ? (
+                                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Текст трека в формате .docx (word) (перед отправкой необходимо убедиться в том, что текст в документе соответствует словам песни).
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
+
                             </div>
 
                             <div className="right-track-fields">
 
                                 {/* track performers names */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ*</label>
+                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span style={{ color: 'red' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1871,7 +1926,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track music authors */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ*</label>
+                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span style={{ color: 'red' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1916,7 +1971,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track phonogram producers */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ*</label>
+                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span style={{ color: 'red' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>

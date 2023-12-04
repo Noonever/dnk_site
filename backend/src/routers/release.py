@@ -1,8 +1,9 @@
 import pprint
+from typing import Union
 from fastapi import APIRouter, HTTPException, Response
 from loguru import logger
 
-from ..schemas import ReleaseUploadRequest, ReleaseRequestOut, ReleaseRequestUpdate
+from ..schemas import ReleaseFileUploadRequest, ReleaseCloudUploadRequest, ReleaseRequestOut, ReleaseRequestUpdate
 
 from ..db.release_requests import add_release_request, get_processed_requests, get_release_requests, get_release_request_by_id, update_release_request, add_processed_request
 from ..db.user import get_user_by_username
@@ -19,7 +20,7 @@ yadisk = get_yadisk_api()
 
 
 @release_router.post('/request')
-async def upload(request: ReleaseUploadRequest):
+async def upload(request: Union[ReleaseFileUploadRequest, ReleaseCloudUploadRequest]):
     user = await get_user_by_username(request.username)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
