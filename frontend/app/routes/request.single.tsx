@@ -347,7 +347,6 @@ export default function SingleReleaseRequest() {
             alert("Некоторые поля заполнены некорректно")
             return
         }
-
         if (releasePerformers === "") {
             err_notificate()
             return
@@ -360,7 +359,7 @@ export default function SingleReleaseRequest() {
             err_notificate()
             return
         }
-
+        
         const authorsToSend: Author[] = []
 
         if (authorIsSolo !== true) {
@@ -390,7 +389,7 @@ export default function SingleReleaseRequest() {
         }
 
         const tracks: NewMusicTrackUpload[] = []
-
+        
         for (let [index, track] of trackForms.entries()) {
 
             let textFileId = null
@@ -448,7 +447,7 @@ export default function SingleReleaseRequest() {
         }
 
         try {
-            setModalIsOpened(true)
+            
             const response = await uploadNewMusicReleaseRequest(
                 username,
                 NewMusicRelease,
@@ -1649,11 +1648,11 @@ export default function SingleReleaseRequest() {
                         <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <div>
-                        <a className="agreement" href="https://youtube.com">Даю согласие на  </a><a href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>обработку</a>
+                        <a target="_blank" rel="noreferrer" className="agreement" href="https://youtube.com">Даю согласие на  </a><a target="_blank" rel="noreferrer" href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>обработку</a>
                     </div>
                 </div>
                 <div className="agreement-container" style={{ marginTop: "5px" }}>
-                    <a href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>персональных данных.</a>
+                    <a target="_blank" rel="noreferrer" href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>персональных данных.</a>
                 </div>
 
            

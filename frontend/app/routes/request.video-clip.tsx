@@ -381,28 +381,30 @@ export default function SingleReleaseRequest() {
             }
         }
 
-        const clip = clipForms[0]
-
-        const coverFileId = await uploadFile(releaseCoverFile)
-        const videoFileId = await uploadFile(releaseVideoFile)
-
-        const clipRelease: ClipReleaseUpload = {
-            title: releaseTitle,
-            performers: releasePerformers,
-            version: releaseVersion,
-            genre: releaseGenre,
-            explicit: clip.explicit,
-            performersNames: clip.performersNames,
-            musicAuthorsNames: clip.musicAuthorsNames,
-            lyricistsNames: clip.lyricistsNames,
-            phonogramProducersNames: clip.phonogramProducersNames,
-            directorsNames: clip.directorsNames,
-            coverFileId: coverFileId,
-            videoFileId: videoFileId,
-        }
-
         try {
+
             setModalIsOpened(true)
+
+            const clip = clipForms[0]
+
+            const coverFileId = await uploadFile(releaseCoverFile)
+            const videoFileId = await uploadFile(releaseVideoFile)
+
+            const clipRelease: ClipReleaseUpload = {
+                title: releaseTitle,
+                performers: releasePerformers,
+                version: releaseVersion,
+                genre: releaseGenre,
+                explicit: clip.explicit,
+                performersNames: clip.performersNames,
+                musicAuthorsNames: clip.musicAuthorsNames,
+                lyricistsNames: clip.lyricistsNames,
+                phonogramProducersNames: clip.phonogramProducersNames,
+                directorsNames: clip.directorsNames,
+                coverFileId: coverFileId,
+                videoFileId: videoFileId,
+            }
+
             const response = await uploadClipReleaseRequest(
                 username,
                 clipRelease,
@@ -1535,15 +1537,20 @@ export default function SingleReleaseRequest() {
 
             <div className="submit-container">
 
-                <div className="agreement-container" >
-                    <svg style={userAgreed ? {backgroundColor: "green"} : {backgroundColor: "rgba(255, 255, 255, 0.00)"}} className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="30" height="30" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" clipRule="evenodd">
-                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z"  stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <a className="agreement" href="https://youtube.com"> Даю согласие на обработку персональных данных</a>
-                </div>
-
                 <div className="submit-button-container" style={!userAgreed ? { color: "none", pointerEvents: "none", opacity: 0.5, cursor: "not-allowed" } : {}}>
                     <button onClick={handleSubmit} disabled={!userAgreed} className="submit">ОТПРАВИТЬ РЕЛИЗ</button>
+                </div>
+
+                <div className="agreement-container" style={{ marginTop: '7px' }}>
+                    <svg style={userAgreed ? { backgroundColor: "green" } : { backgroundColor: "rgba(255, 255, 255, 0.00)" }} className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" clipRule="evenodd">
+                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div>
+                        <a target="_blank" rel="noreferrer" className="agreement" href="https://youtube.com">Даю согласие на  </a><a target="_blank" rel="noreferrer" href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>обработку</a>
+                    </div>
+                </div>
+                <div className="agreement-container" style={{ marginTop: "5px" }}>
+                    <a target="_blank" rel="noreferrer" href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>персональных данных.</a>
                 </div>
 
             </div>
