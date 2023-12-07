@@ -100,14 +100,6 @@ a.full-cover {
     /* 50% */
 }
 
-svg.track-controls {
-    margin-top: 2.2vh;
-}
-
-svg.track-controls-first {
-    margin-top: 3.9vh;
-    cursor: pointer;
-}
 
 input.field.pending {
     background-color: rgba(255, 255, 0, 0.13);

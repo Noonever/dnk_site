@@ -1535,9 +1535,9 @@ export default function SingleReleaseRequest() {
 
             <div className="submit-container">
 
-                <div className="agreement-container">
-                    <svg className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="30" height="30" viewBox="0 0 18 18" fill={userAgreed ? "green" : "none"} xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
+                <div className="agreement-container" >
+                    <svg style={userAgreed ? {backgroundColor: "green"} : {backgroundColor: "rgba(255, 255, 255, 0.00)"}} className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="30" height="30" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" clipRule="evenodd">
+                        <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z"  stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <a className="agreement" href="https://youtube.com"> Даю согласие на обработку персональных данных</a>
                 </div>
