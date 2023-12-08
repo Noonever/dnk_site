@@ -6,6 +6,8 @@ import { getUserByUsername } from "~/backend/user";
 import styles from "~/styles/request.css";
 import { requireUserName } from "~/utils/session.server";
 
+
+// @ts-ignore
 export const meta: MetaFunction = () => {
     return [
         { title: "DNK | Заявка на отгрузку" },
@@ -21,18 +23,21 @@ export const links: LinksFunction = () => {
 export async function loader({ request }: LoaderArgs) {
     const userName = await requireUserName(request);
     const user = await getUserByUsername(userName);
-    return user;
+    const page = request.url.split('/').pop();
+    return {user, page};
 }
 
 export default function ReleaseRequest() {
 
-    const user = useLoaderData();
+    const { user, page } = useLoaderData();
     const navigate = useNavigate();
 
     useEffect(() => {
         // Perform a redirect when the page is visited
-        navigate('/request/single');
-    }, [navigate]);
+        if (page === 'request') {
+            navigate('/request/single');
+        }
+    }, [navigate, page]);
 
     if (!user.isVerified) {
         return (

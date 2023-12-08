@@ -1,19 +1,23 @@
 import fastAPI from "./fastapi";
 import type { Author } from "~/types/author";
-import type { NewMusicReleaseUpload, ClipReleaseUpload, BackCatalogReleaseUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
+import type { NewMusicReleaseUpload, ClipReleaseUpload, BackCatalogReleaseFileUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
 
 
 export async function uploadNewMusicReleaseRequest(
     username: string,
     releaseData: NewMusicReleaseUpload,
     authors: Author[],
+    cloudLink: string | undefined,
 ) {
     const release = {
         username: username,
         type: 'new-music',
         data: releaseData,
-        authors: authors
+        authors: authors,
+        cloudLink: cloudLink? cloudLink : null
     }
+
+    console.log(release)
 
     try {
         await fastAPI.post(`/release/request`, release)
@@ -26,13 +30,15 @@ export async function uploadNewMusicReleaseRequest(
 export async function uploadClipReleaseRequest(
     username: string,
     releaseData: ClipReleaseUpload,
-    authors: Author[]
+    authors: Author[],
+    cloudLink: string | undefined,
 ) {
     const release = {
         username: username,
         type: 'clip',
         data: releaseData,
-        authors: authors
+        authors: authors,
+        cloudLink: cloudLink? cloudLink : null
     }
 
     try {
@@ -45,14 +51,16 @@ export async function uploadClipReleaseRequest(
 
 export async function uploadBackCatalogReleaseRequest(
     username: string,
-    releaseData: BackCatalogReleaseUpload,
-    authors: Author[]
+    releaseData: BackCatalogReleaseFileUpload,
+    authors: Author[],
+    cloudLink: string | undefined,
 ) {
     const release = {
         username: username,
         type: 'back-catalog',
         data: releaseData,
-        authors: authors
+        authors: authors,
+        cloudLink: cloudLink? cloudLink : null
     }
         
     try {

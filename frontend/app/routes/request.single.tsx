@@ -23,7 +23,7 @@ import {
 import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~/utils/regexp";
 import CustomSelect from "~/components/select";
 import { getUserByUsername } from "~/backend/user";
-import { User } from "~/types/user";
+import type { User } from "~/types/user";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
@@ -101,7 +101,7 @@ export default function SingleReleaseRequest() {
     const [userAgreed, setUserAgreed] = useState(false)
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
-    const [modalIsOpened, setModalIsOpened] = useState(false);
+    const [loadingModalIsOpened, setLoadingModalIsOpened] = useState(false);
     const [successModalIsOpened, setSuccessModalIsOpened] = useState(false);
 
     const [authorIsSolo, setAuthorIsSolo] = useState(true);
@@ -331,39 +331,53 @@ export default function SingleReleaseRequest() {
         setReleaseVersion("")
         setReleaseGenre("")
         setReleaseCoverFile(undefined)
+        setCloudLink("")
         setTrackForms([defaultTrack])
         setInvalidFieldKeys(new Set())
         flushPassportInvalidKeys()
         setAuthors([])
     }
 
-    const err_notificate = () => {
-        alert('Заполните все обязательные поля')
+    const err_notificate = (message?: string) => {
+        alert(message || 'Заполните все обязательные поля')
     }
 
     const handleSubmit = async () => {
 
+        // Check if all fields are filled correctly
         if (invalidFieldKeys.size) {
-            alert("Некоторые поля заполнены некорректно")
+            err_notificate("Некоторые поля заполнены некорректно")
             return
         }
+
+        // Check if release main data is filled
         if (releasePerformers === "") {
-            err_notificate()
+            err_notificate("Укажите исполнителей релиза")
             return
         }
         if (releaseTitle === "") {
-            err_notificate()
+            err_notificate("Укажите название релиза")
             return
         }
-        if (releaseCoverFile === undefined) {
-            err_notificate()
-            return
+
+        if (cloudUpload === false) {
+            if (releaseCoverFile === undefined) {
+                err_notificate("Добавьте обложку")
+                return
+            }
+        } else {
+            if (cloudLink === "") {
+                err_notificate("Добавьте ссылку исходники")
+                return
+            }
         }
-        
+
+        // Setting up authors
         const authorsToSend: Author[] = []
+        const authorsFiles: Record<number, File> = {}
 
         if (authorIsSolo !== true) {
-            for (let author of authors) {
+            for (let [index, author] of authors.entries()) {
 
                 let authorToSend: Author | null = null
 
@@ -373,48 +387,50 @@ export default function SingleReleaseRequest() {
                         data: author.docs,
                     }
                 } else if (author.docs === null && author.file !== null) {
-                    const authorFileId = await uploadFile(author.file)
                     authorToSend = {
                         fullName: author.fullName,
-                        data: authorFileId,
+                        data: undefined,
                     }
+                    authorsFiles[index] = author.file
                 } else {
-                    alert('Заполните документы добавленных авторов')
-                    console.log(authors)
+                    err_notificate(`Заполните документы автора ${author.fullName}`)
                     return
                 }
-
                 authorsToSend.push(authorToSend)
             }
         }
 
+        // Setting up tracks
         const tracks: NewMusicTrackUpload[] = []
-        
+        const tracksWavFiles: Record<number, File> = {}
+        const tracksTextFiles: Record<number, File> = {}
+
         for (let [index, track] of trackForms.entries()) {
 
-            let textFileId = null
-            let wavFileId = null
-
-            if (track.wavFile === undefined) {
-                alert("Прикрепите wavFile")
-                return
-            } else {
-                wavFileId = await uploadFile(track.wavFile)
-            }
-            if (track.textFile !== undefined) {
-                textFileId = await uploadFile(track.textFile)
-            }
             if (track.performersNames === "") {
-                err_notificate()
+                err_notificate(`Укажите исполнителей`)
                 return
             }
             if (track.musicAuthorsNames === "") {
-                err_notificate()
+                err_notificate(`Укажите авторов музыки`)
                 return
             }
             if (track.phonogramProducersNames === "") {
-                err_notificate()
+                err_notificate(`Укажите производителей фонограммы трека`)
                 return
+            }
+
+            // Defining files
+            if (cloudUpload === false) {
+                if (track.wavFile === undefined) {
+                    err_notificate(`Прикрепите wav файл`)
+                    return
+                } else {
+                    tracksWavFiles[index] = track.wavFile
+                }
+                if (track.textFile !== undefined) {
+                    tracksTextFiles[index] = track.textFile
+                }
             }
 
             const trackData: NewMusicTrackUpload = {
@@ -428,37 +444,56 @@ export default function SingleReleaseRequest() {
                 musicAuthorsNames: track.musicAuthorsNames,
                 lyricistsNames: track.lyricistsNames,
                 phonogramProducersNames: track.phonogramProducersNames,
-                wavFileId: wavFileId,
-                textFileId: textFileId,
+                wavFileId: null,
+                textFileId: null,
             }
-
             tracks.push(trackData)
         }
 
-        const coverFileId = await uploadFile(releaseCoverFile)
-
-        const NewMusicRelease: NewMusicReleaseUpload = {
-            performers: releasePerformers,
-            title: releaseTitle,
-            version: releaseVersion,
-            genre: releaseGenre,
-            tracks: tracks,
-            coverFileId: coverFileId,
-        }
-
         try {
-            
+            setLoadingModalIsOpened(true)
+
+            let coverFileId = null
+
+            if (cloudUpload === false) {
+                // Uploading tracks files
+                for (let [index, trackWavFile] of Object.entries(tracksWavFiles)) {
+                    tracks[Number(index)].wavFileId = await uploadFile(trackWavFile)
+                }
+                for (let [index, trackTextFile] of Object.entries(tracksTextFiles)) {
+                    tracks[Number(index)].textFileId = await uploadFile(trackTextFile)
+                }
+
+                for (let [index, authorFile] of Object.entries(authorsFiles)) {
+                    authorsToSend[Number(index)].data = await uploadFile(authorFile)
+                }
+                // Uploading cover
+                coverFileId = await uploadFile(releaseCoverFile as File)
+            }
+
+            // Setting up release
+            const NewMusicRelease: NewMusicReleaseUpload = {
+                performers: releasePerformers,
+                title: releaseTitle,
+                version: releaseVersion,
+                genre: releaseGenre,
+                tracks: tracks,
+                coverFileId: coverFileId,
+            }
+
+            // Uploading release
             const response = await uploadNewMusicReleaseRequest(
                 username,
                 NewMusicRelease,
-                authorsToSend
+                authorsToSend,
+                cloudLink
             )
             if (response === 200) {
-                setModalIsOpened(false)
+                setLoadingModalIsOpened(false)
                 setSuccessModalIsOpened(true)
                 setTimeout(() => {
                     setSuccessModalIsOpened(false)
-                }, 3000)
+                }, 2000)
                 flushForm()
             }
         } catch (error) {
@@ -1221,7 +1256,7 @@ export default function SingleReleaseRequest() {
     return (
         <div className="request-container">
 
-            {modalIsOpened && (
+            {loadingModalIsOpened && (
                 <div className="overlay">
                     <div className="modal">
                         <span>Загрузка</span>
@@ -1258,7 +1293,7 @@ export default function SingleReleaseRequest() {
                 {/* release performers */}
                 <div className="row-field" >
 
-                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1287,7 +1322,7 @@ export default function SingleReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1343,7 +1378,7 @@ export default function SingleReleaseRequest() {
                     className="release-genre-selector"
                     {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red" } } : null}
                 >
-                    <label className="input genre">ЖАНР <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input genre">ЖАНР <span className="star" style={{ color: 'white' }}>*</span></label>
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
@@ -1358,7 +1393,7 @@ export default function SingleReleaseRequest() {
                 {cloudUpload ? (
                     <>
                         <div className="right-track-field" style={{ width: "20vw" }}>
-                            <label className="input shifted">ИСХОДНИКИ <span style={{ color: 'red' }}>*</span></label>
+                            <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1385,7 +1420,7 @@ export default function SingleReleaseRequest() {
                             <TooltipTrigger asChild>
                                 <div className="release-cover-selector">
                                     <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                                    <label className="input cover">ОБЛОЖКА <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input cover">ОБЛОЖКА <span className="star" style={{ color: 'white' }}>*</span></label>
                                     {!releaseCoverFile ? (
                                         <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1418,7 +1453,7 @@ export default function SingleReleaseRequest() {
                                     <div id='upper-left-track-fields'>
 
                                         {/* explicit */}
-                                        <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ? <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ? <span className="star" style={{ color: 'white' }}>*</span></label>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1457,7 +1492,7 @@ export default function SingleReleaseRequest() {
 
 
                                         {/* isCover */}
-                                        <label className="input downgap">КАВЕР? <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input downgap">КАВЕР? <span className="star" style={{ color: 'white' }}>*</span></label>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1482,7 +1517,7 @@ export default function SingleReleaseRequest() {
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div className="load-file">
-                                                                <label className="input">.WAV <span style={{ color: 'red' }}>*</span></label>
+                                                                <label className="input">.WAV <span className="star" style={{ color: 'white' }}>*</span></label>
                                                                 <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
                                                                 {!trackForm.wavFile ? (
                                                                     <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1536,7 +1571,7 @@ export default function SingleReleaseRequest() {
 
                                     {/* track performers names */}
                                     <div className="right-track-field">
-                                        <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span className="star" style={{ color: 'white' }}>*</span></label>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1545,13 +1580,12 @@ export default function SingleReleaseRequest() {
                                                         onChange={(e) => handleChangeTrackPerformersNames(e, index)}
                                                         className="track-field"
                                                         {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
-                                                        placeholder="Иванов Иван Иванович"
+                                                        placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                         type="text"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     Реальные ФИО исполнителей. Eсли их несколько - укажите через запятую.<br></br>
-                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -1559,7 +1593,7 @@ export default function SingleReleaseRequest() {
 
                                     {/* track music authors */}
                                     <div className="right-track-field">
-                                        <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1568,13 +1602,12 @@ export default function SingleReleaseRequest() {
                                                         onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
                                                         className="track-field"
                                                         {...invalidFieldKeys.has(`${index}-track-musicAuthorsNames`) ? { style: { border: "1px solid red" } } : null}
-                                                        placeholder="Иванов Иван Иванович"
+                                                        placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                         type="text"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     Реальные ФИО авторов музыки. Eсли их несколько - укажите через запятую.<br></br>
-                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -1590,13 +1623,12 @@ export default function SingleReleaseRequest() {
                                                         onChange={(e) => handleChangeTrackLyricists(e, index)}
                                                         className="track-field"
                                                         {...invalidFieldKeys.has(`${index}-track-lyricistsNames`) ? { style: { border: "1px solid red" } } : null}
-                                                        placeholder="Иванов Иван Иванович"
+                                                        placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                         type="text"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     Реальные ФИО авторов слов. Eсли их несколько - укажите через запятую.<br></br>
-                                                    Пример: Иванов Иван Иванович, Петров Петр Петрович
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -1604,7 +1636,7 @@ export default function SingleReleaseRequest() {
 
                                     {/* track phonogram producers */}
                                     <div className="right-track-field">
-                                        <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span className="star" style={{ color: 'white' }}>*</span></label>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1613,14 +1645,13 @@ export default function SingleReleaseRequest() {
                                                         onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
                                                         className="track-field"
                                                         {...invalidFieldKeys.has(`${index}-track-phonogramProducersNames`) ? { style: { border: "1px solid red" } } : null}
-                                                        placeholder="Иванов Иван Иванович"
+                                                        placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                         type="text"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     Реальные ФИО изготовителей фонограммы.<br></br>
-                                                    Обычно изготовителем фонограммы является сам артист или человек, который спродюсировал процесс записи, профинансировал, дал идею.<br></br>
-                                                    Пример: Иванов Иван Иванович
+                                                    Обычно изготовителем фонограммы является сам артист или человек, который спродюсировал процесс записи, профинансировал, дал идею.
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -1643,7 +1674,7 @@ export default function SingleReleaseRequest() {
                     <button onClick={handleSubmit} disabled={!userAgreed} className="submit">ОТПРАВИТЬ РЕЛИЗ</button>
                 </div>
 
-                <div className="agreement-container" style={{marginTop: '7px'}}>
+                <div className="agreement-container" style={{ marginTop: '7px' }}>
                     <svg style={userAgreed ? { backgroundColor: "green" } : { backgroundColor: "rgba(255, 255, 255, 0.00)" }} className="agreement" onClick={() => setUserAgreed(!userAgreed)} width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" clipRule="evenodd">
                         <path d="M5.625 9L7.875 11.25L12.375 6.75M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z" stroke="white" strokeOpacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -1655,7 +1686,7 @@ export default function SingleReleaseRequest() {
                     <a target="_blank" rel="noreferrer" href="https://youtube.com" style={{ textDecoration: "underline", cursor: "pointer" }}>персональных данных.</a>
                 </div>
 
-           
+
             </div>
         </div >
     )

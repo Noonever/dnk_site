@@ -30,7 +30,7 @@ export async function loader({ request }: LoaderArgs) {
         if (user.isAdmin && !request.url.includes("admin")) {
             return redirect("/admin");
         }
-        if (!user.isAdmin && !request.url.includes("request")) {
+        if (!user.isAdmin && request.url.split("/").pop() === '') {
             return redirect("/request");
         }
     }
@@ -47,7 +47,6 @@ export default function App() {
     const user = data.user;
     const isAdmin = user?.isAdmin;
 
-    console.log(currentPath)
     return (
         <html lang="en">
             <head>

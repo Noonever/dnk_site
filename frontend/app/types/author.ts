@@ -10,7 +10,7 @@ export interface AuthorDocs {
 
 export interface Author {
     fullName: string,
-    data: AuthorDocs | string    
+    data: AuthorDocs | string | undefined  
 }
 
 export interface AuthorForm {

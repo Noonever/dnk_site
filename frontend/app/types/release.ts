@@ -11,7 +11,7 @@ export interface NewMusicTrackUpload {
     musicAuthorsNames: string;
     lyricistsNames: string | null;
     phonogramProducersNames: string;
-    wavFileId: string;
+    wavFileId: string | null;
     textFileId: string | null;
 }
 
@@ -25,10 +25,10 @@ export interface NewMusicReleaseUpload {
     version: string;
     genre: string;
     tracks: NewMusicTrackUpload[];
-    coverFileId: string;
+    coverFileId: string | null;
 }
 
-export interface BackCatalogReleaseUpload {
+export interface BackCatalogReleaseFileUpload {
     performers: string;
     title: string;
     version: string | null;
@@ -36,7 +36,7 @@ export interface BackCatalogReleaseUpload {
     upc: string;
     date: string;
     tracks: BackCatalogTrackUpload[];
-    coverFileId: string;
+    coverFileId: string | null;
 }
 
 export interface ClipReleaseUpload {
@@ -50,8 +50,8 @@ export interface ClipReleaseUpload {
     lyricistsNames: string;
     phonogramProducersNames: string;
     directorsNames: string;
-    coverFileId: string;
-    videoFileId: string;
+    coverFileId: string | null;
+    videoFileId: string | null;
 }
 
 export interface ReleaseRequest {
@@ -62,13 +62,14 @@ export interface ReleaseRequest {
     inDeliverySheet: boolean;
     inDocsSheet: boolean;
     type: "new-music" | "back-catalog" | "clip";
+    source: string;
     status: 'pending' | 'accepted' | 'error';
-    data: NewMusicReleaseUpload | BackCatalogReleaseUpload | ClipReleaseUpload;
+    data: NewMusicReleaseUpload | BackCatalogReleaseFileUpload | ClipReleaseUpload;
     authors: Author[];
 }
 
 export interface ReleaseRequestUpdate {
     date: string;
     imprint: string;
-    data: NewMusicReleaseUpload | BackCatalogReleaseUpload | ClipReleaseUpload;
+    data: NewMusicReleaseUpload | BackCatalogReleaseFileUpload | ClipReleaseUpload;
 }

@@ -12,6 +12,8 @@ import { requireUserName } from "~/utils/session.server";
 
 import styles from "~/styles/request.single.css";
 import passportStyles from "~/styles/me.css";
+import indexSelectStyles from "~/styles/index-picker.css";
+
 import ReleaseGenreOptions from "~/components/release-genres";
 import {
     Tooltip,
@@ -24,7 +26,7 @@ import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern } from "~
 
 import CustomSelect from "~/components/select";
 import { getUserByUsername } from "~/backend/user";
-import { User } from "~/types/user";
+import type { User } from "~/types/user";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
@@ -45,7 +47,7 @@ export const meta: MetaFunction = () => {
 };
 
 export const links: LinksFunction = () => {
-    return [{ rel: "stylesheet", href: passportStyles }, { rel: "stylesheet", href: styles },];
+    return [{ rel: "stylesheet", href: passportStyles }, { rel: "stylesheet", href: styles }, { rel: "stylesheet", href: indexSelectStyles }];
 };
 
 export async function loader({ request }: LoaderArgs): Promise<{ username: string, user: User }> {
@@ -64,8 +66,6 @@ export default function AlbumReleaseRequest() {
     const { username, user } = data;
 
     const cloudUpload: boolean = user.linkUpload
-
-    console.log(user)
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
@@ -111,9 +111,13 @@ export default function AlbumReleaseRequest() {
     const [userAgreed, setUserAgreed] = useState(false)
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
-    const [modalIsOpened, setModalIsOpened] = useState(false);
+    const [loadingModalIsOpened, setLoadingModalIsOpened] = useState(false);
     const [successModalIsOpened, setSuccessModalIsOpened] = useState(false);
-    const [changeNumberModalIsOpened, setChangeNumberModalIsOpened] = useState(false);
+
+    const [changeIndexModalIsOpened, setChangeIndexModalIsOpened] = useState(false);
+    const [indexToChange, setIndexToChange] = useState<number | undefined>(undefined);
+    const [targetIndex, setTargetIndex] = useState<number | undefined>(undefined);
+    const [currentIndexIsValid, setCurrentIndexIsValid] = useState(false);
 
     const [authorIsSolo, setAuthorIsSolo] = useState(true);
     const [fullNameToAdd, setFullNameToAdd] = useState('');
@@ -139,6 +143,50 @@ export default function AlbumReleaseRequest() {
 
     const minTracks = 1
     const maxTracks = 100
+
+    const handleChangeTargetIndex = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+        const currentTracksAmount = trackForms.length
+        const index = Number(event.target.value) - 1
+
+        if (!/^\d+$/.test(event.target.value) || index + 1 > currentTracksAmount || index  === indexToChange || index < 0) {
+            setCurrentIndexIsValid(false)
+            return
+        } else {
+            setCurrentIndexIsValid(true)
+            setTargetIndex(index)
+        }
+    }
+
+    const handleChangeTrackId = () => {
+        const newTrackForms = [...trackForms]
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+
+        const trackToMove = newTrackForms[indexToChange as number]
+        const secondTrack = newTrackForms[targetIndex as number]
+        newTrackForms[indexToChange as number] = secondTrack
+        newTrackForms[targetIndex as number] = trackToMove
+
+        for (const key of invalidFieldKeys) {
+            console.log(key)
+            if (key.startsWith(`${indexToChange}-track`)) {
+
+                newInvalidFieldKeys.add(key.replace(`${indexToChange}-track`, `${targetIndex}-track`))
+                newInvalidFieldKeys.delete(key)
+
+            } else if (key.startsWith(`${targetIndex}-track`)) {
+
+                newInvalidFieldKeys.add(key.replace(`${targetIndex}-track`, `${indexToChange}-track`))
+                newInvalidFieldKeys.delete(key)
+
+            }
+        }
+        console.log(invalidFieldKeys)
+        console.log(newInvalidFieldKeys)
+        setInvalidFieldKeys(newInvalidFieldKeys)
+        setTrackForms(newTrackForms)
+        setChangeIndexModalIsOpened(false)
+    }
 
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
@@ -429,9 +477,6 @@ export default function AlbumReleaseRequest() {
         setTrackForms(newTrackForms);
     }
 
-    const handleChangeTrackId = (fromId: number, toId: number) => {
-
-    }
 
     const handleCopyFields = (trackId: number) => {
         const newTrackForms = [...trackForms]
@@ -482,40 +527,53 @@ export default function AlbumReleaseRequest() {
         setReleaseGenre("")
         setReleaseCoverFile(undefined)
         setDefaultTrackPerformers("")
+        setCloudLink("")
         setTrackForms([defaultTrack])
         setInvalidFieldKeys(new Set())
         flushPassportInvalidKeys()
         setAuthors([])
     }
 
-    const err_notificate = () => {
-        alert('Заполните все обязательные поля')
+    const err_notificate = (message?: string) => {
+        alert(message || 'Заполните все обязательные поля')
     }
 
     const handleSubmit = async () => {
 
+        // Check if all fields are filled correctly
         if (invalidFieldKeys.size) {
-            alert("Некоторые поля заполнены некорректно")
+            err_notificate("Некоторые поля заполнены некорректно")
             return
         }
 
+        // Check if release main data is filled
         if (releasePerformers === "") {
-            err_notificate()
+            err_notificate("Укажите исполнителей релиза")
             return
         }
         if (releaseTitle === "") {
-            err_notificate()
-            return
-        }
-        if (releaseCoverFile === undefined) {
-            err_notificate()
+            err_notificate("Укажите название релиза")
             return
         }
 
+        if (cloudUpload === false) {
+            if (releaseCoverFile === undefined) {
+                err_notificate("Добавьте обложку")
+                return
+            }
+        } else {
+            if (cloudLink === "") {
+                err_notificate("Добавьте ссылку на исходники")
+                return
+            }
+        }
+
+        // Setting up authors
         const authorsToSend: Author[] = []
+        const authorsFiles: Record<number, File> = {}
 
         if (authorIsSolo !== true) {
-            for (let author of authors) {
+            for (let [index, author] of authors.entries()) {
 
                 let authorToSend: Author | null = null
 
@@ -525,58 +583,58 @@ export default function AlbumReleaseRequest() {
                         data: author.docs,
                     }
                 } else if (author.docs === null && author.file !== null) {
-                    const authorFileId = await uploadFile(author.file)
                     authorToSend = {
                         fullName: author.fullName,
-                        data: authorFileId,
+                        data: undefined,
                     }
+                    authorsFiles[index] = author.file
                 } else {
-                    alert('Заполните документы добавленных авторов')
-                    console.log(authors)
+                    err_notificate(`Заполните документы автора ${author.fullName}`)
                     return
                 }
-
                 authorsToSend.push(authorToSend)
             }
         }
 
+        // Setting up tracks
         const tracks: NewMusicTrackUpload[] = []
-
-        setModalIsOpened(true)
+        const tracksWavFiles: Record<number, File> = {}
+        const tracksTextFiles: Record<number, File> = {}
 
         for (let [index, track] of trackForms.entries()) {
 
-            let textFileId = null
-            let wavFileId = null
-
-            if (track.wavFile === undefined) {
-                alert("Прикрепите wavFile")
-                return
-            } else {
-                wavFileId = await uploadFile(track.wavFile)
-            }
-            if (track.textFile !== undefined) {
-                textFileId = await uploadFile(track.textFile)
-            }
             if (track.performers === "") {
-                err_notificate()
+                err_notificate(`Укажите исполнителей трека ${index + 1}`)
                 return
             }
             if (track.title === "") {
-                err_notificate()
+                err_notificate(`Укажите название трека ${index + 1}`)
                 return
             }
             if (track.performersNames === "") {
-                err_notificate()
+                err_notificate(`Укажите исполнителей трека ${index + 1}`)
                 return
             }
             if (track.musicAuthorsNames === "") {
-                err_notificate()
+                err_notificate(`Укажите авторов музыки трека ${index + 1}`)
                 return
             }
             if (track.phonogramProducersNames === "") {
-                err_notificate()
+                err_notificate(`Укажите производителей фонограммы трека ${index + 1}`)
                 return
+            }
+
+            // Defining files
+            if (cloudUpload === false) {
+                if (track.wavFile === undefined) {
+                    err_notificate(`Прикрепите wavFile для трека ${index + 1}`)
+                    return
+                } else {
+                    tracksWavFiles[index] = track.wavFile
+                }
+                if (track.textFile !== undefined) {
+                    tracksTextFiles[index] = track.textFile
+                }
             }
 
             const trackData: NewMusicTrackUpload = {
@@ -590,36 +648,56 @@ export default function AlbumReleaseRequest() {
                 musicAuthorsNames: track.musicAuthorsNames,
                 lyricistsNames: track.lyricistsNames,
                 phonogramProducersNames: track.phonogramProducersNames,
-                wavFileId: wavFileId,
-                textFileId: textFileId,
+                wavFileId: null,
+                textFileId: null,
             }
-
             tracks.push(trackData)
         }
 
-        const coverFileId = await uploadFile(releaseCoverFile)
-
-        const NewMusicRelease: NewMusicReleaseUpload = {
-            performers: releasePerformers,
-            title: releaseTitle,
-            version: releaseVersion,
-            genre: releaseGenre,
-            tracks: tracks,
-            coverFileId: coverFileId,
-        }
-
         try {
+            setLoadingModalIsOpened(true)
+
+            let coverFileId = null
+
+            if (cloudUpload === false) {
+                // Uploading tracks files
+                for (let [index, trackWavFile] of Object.entries(tracksWavFiles)) {
+                    tracks[Number(index)].wavFileId = await uploadFile(trackWavFile)
+                }
+                for (let [index, trackTextFile] of Object.entries(tracksTextFiles)) {
+                    tracks[Number(index)].textFileId = await uploadFile(trackTextFile)
+                }
+
+                for (let [index, authorFile] of Object.entries(authorsFiles)) {
+                    authorsToSend[Number(index)].data = await uploadFile(authorFile)
+                }
+                // Uploading cover
+                coverFileId = await uploadFile(releaseCoverFile as File)
+            }
+
+            // Setting up release
+            const NewMusicRelease: NewMusicReleaseUpload = {
+                performers: releasePerformers,
+                title: releaseTitle,
+                version: releaseVersion,
+                genre: releaseGenre,
+                tracks: tracks,
+                coverFileId: coverFileId,
+            }
+
+            // Uploading release
             const response = await uploadNewMusicReleaseRequest(
                 username,
                 NewMusicRelease,
-                authorsToSend
+                authorsToSend,
+                cloudLink,
             )
             if (response === 200) {
-                setModalIsOpened(false)
+                setLoadingModalIsOpened(false)
                 setSuccessModalIsOpened(true)
                 setTimeout(() => {
                     setSuccessModalIsOpened(false)
-                }, 3000)
+                }, 2000)
                 flushForm()
             }
         } catch (error) {
@@ -1382,7 +1460,7 @@ export default function AlbumReleaseRequest() {
     return (
         <div className="request-container">
 
-            {modalIsOpened && (
+            {loadingModalIsOpened && (
                 <div className="overlay">
                     <div className="modal">
                         <span>Загрузка</span>
@@ -1419,7 +1497,7 @@ export default function AlbumReleaseRequest() {
                 {/* release performers */}
                 <div className="row-field" >
 
-                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1448,7 +1526,7 @@ export default function AlbumReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1503,7 +1581,7 @@ export default function AlbumReleaseRequest() {
                     className="release-genre-selector"
                     {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red" } } : null}
                 >
-                    <label className="input genre">ЖАНР <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input genre">ЖАНР <span className="star" style={{ color: 'white' }}>*</span></label>
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
@@ -1517,7 +1595,7 @@ export default function AlbumReleaseRequest() {
                 {cloudUpload ? (
                     <>
                         <div className="right-track-field" style={{ width: "20vw" }}>
-                            <label className="input shifted">ИСХОДНИКИ <span style={{ color: 'red' }}>*</span></label>
+                            <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1544,7 +1622,7 @@ export default function AlbumReleaseRequest() {
                             <TooltipTrigger asChild>
                                 <div className="release-cover-selector">
                                     <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                                    <label className="input cover">ОБЛОЖКА <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input cover">ОБЛОЖКА <span className="star" style={{ color: 'white' }}>*</span></label>
                                     {!releaseCoverFile ? (
                                         <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1569,16 +1647,35 @@ export default function AlbumReleaseRequest() {
                     <div key={index} style={{ width: '100%', marginBottom: '4vh' }}>
                         <div key={index} className="track-header">
 
+                            {(changeIndexModalIsOpened && index === indexToChange) &&  (
+                                <div className="index-picker-container">
+                                    <div className="index-picker-title-container">
+                                        <label className="input">ВВЕДИТЕ НОМЕР ТРЕКА</label>
+                                    </div>
+                                    <center>
+                                        <input maxLength={3} className="index-picker" onChange={(e) => handleChangeTargetIndex(e)} style={currentIndexIsValid ? { borderColor: 'green' } : { borderColor: 'red' }}></input>
+                                    </center>
+                                    <div className="index-picker-button-container">
+                                        <button disabled={!currentIndexIsValid} onClick={handleChangeTrackId} className="submit index-controls" style={ !currentIndexIsValid ? { backgroundColor: 'rgba(255, 255, 255, 0.3)', cursor: 'default', width: "40%", height: "3vh" } : { width: "40%", height: "3vh" }} >
+                                            ОК
+                                        </button>
+                                        <button onClick={() => { setTargetIndex(undefined); setChangeIndexModalIsOpened(false) }} className="submit index-controls" style={{ width: "40%", height: "3vh" }}>
+                                            ОТМЕНА
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* track number */}
                             <div className="index-button-container">
-                                <button className="round">{index + 1}</button>
+                                <button onClick={() => {setChangeIndexModalIsOpened(true); setIndexToChange(index)}} className="round">{index + 1}</button>
                             </div>
 
                             <div className="row-fields">
 
                                 {/* track performers */}
                                 <div className="row-field" >
-                                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input shifted">ИСПОЛНИТЕЛИ <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <div className="row-field-input-container" style={{ marginBottom: '2vh' }}>
                                         <TooltipProvider>
                                             <Tooltip>
@@ -1608,7 +1705,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track title */}
                                 <div className="row-field">
-                                    <label className="input shifted">НАЗВАНИЕ ТРЕКА <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input shifted">НАЗВАНИЕ ТРЕКА <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <div className="row-field-input-container">
                                         <TooltipProvider>
                                             <Tooltip>
@@ -1701,7 +1798,7 @@ export default function AlbumReleaseRequest() {
                                 <div id='upper-left-track-fields'>
 
                                     {/* explicit */}
-                                    <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ? <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ? <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1738,7 +1835,7 @@ export default function AlbumReleaseRequest() {
                                     </TooltipProvider>
 
                                     {/* isCover */}
-                                    <label className="input downgap">КАВЕР? <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input downgap">КАВЕР? <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1763,7 +1860,7 @@ export default function AlbumReleaseRequest() {
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div className="load-file">
-                                                            <label className="input">.WAV <span style={{ color: 'red' }}>*</span></label>
+                                                            <label className="input">.WAV <span className="star" style={{ color: 'white' }}>*</span></label>
                                                             <input accept=".wav" onChange={(e) => handleChangeTrackWavFile(e, index)} type="file" className="full-cover" />
                                                             {!trackForm.wavFile ? (
                                                                 <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1817,7 +1914,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track performers names */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1826,13 +1923,12 @@ export default function AlbumReleaseRequest() {
                                                     onChange={(e) => handleChangeTrackPerformersNames(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-performersNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 Реальные ФИО исполнителей. Eсли их несколько - укажите через запятую.<br></br>
-                                                Пример: Иванов Иван Иванович, Петров Петр Петрович
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -1840,7 +1936,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track music authors */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1849,13 +1945,12 @@ export default function AlbumReleaseRequest() {
                                                     onChange={(e) => handleChangeTrackMusicAuthors(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-musicAuthorsNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 Реальные ФИО авторов музыки. Eсли их несколько - укажите через запятую.<br></br>
-                                                Пример: Иванов Иван Иванович, Петров Петр Петрович
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -1871,13 +1966,12 @@ export default function AlbumReleaseRequest() {
                                                     onChange={(e) => handleChangeTrackLyricists(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-lyricistsNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 Реальные ФИО авторов слов. Eсли их несколько - укажите через запятую.<br></br>
-                                                Пример: Иванов Иван Иванович, Петров Петр Петрович
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -1885,7 +1979,7 @@ export default function AlbumReleaseRequest() {
 
                                 {/* track phonogram producers */}
                                 <div className="right-track-field">
-                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span className="star" style={{ color: 'white' }}>*</span></label>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1894,14 +1988,13 @@ export default function AlbumReleaseRequest() {
                                                     onChange={(e) => handleChangeTrackPhonogramProducers(e, index)}
                                                     className="track-field"
                                                     {...invalidFieldKeys.has(`${index}-track-phonogramProducersNames`) ? { style: { border: "1px solid red" } } : null}
-                                                    placeholder="Иванов Иван Иванович"
+                                                    placeholder="Иванов Иван Иванович, Петров Петр Петрович"
                                                     type="text"
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 Реальные ФИО изготовителей фонограммы.<br></br>
                                                 Обычно изготовителем фонограммы является сам артист или человек, который спродюсировал процесс записи, профинансировал, дал идею.<br></br>
-                                                Пример: Иванов Иван Иванович
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>

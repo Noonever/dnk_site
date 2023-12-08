@@ -3,7 +3,7 @@ import { useState } from "react";
 import { uploadFile } from "~/backend/file";
 import { updateReleaseRequest } from "~/backend/release";
 
-import type { BackCatalogReleaseUpload, BackCatalogTrackUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
+import type { BackCatalogReleaseFileUpload, BackCatalogTrackUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
 
 import ReleaseGenreOptions from "./release-genres";
 import { fullNamesRePattern, multipleNicknamesRePattern, timeRePattern, tenDigitsRePattern } from "~/utils/regexp";
@@ -21,7 +21,7 @@ export default function BackCatalogReleaseSection(
 ) {
 
     const request = props.request
-    const data: BackCatalogReleaseUpload = request.data as BackCatalogReleaseUpload;
+    const data: BackCatalogReleaseFileUpload = request.data as BackCatalogReleaseFileUpload;
 
     const navigate = useNavigate()
 
@@ -493,7 +493,7 @@ export default function BackCatalogReleaseSection(
             coverFileId = await uploadFile(releaseCoverFile)
         }
 
-        const backCatalogRelease: BackCatalogReleaseUpload = {
+        const backCatalogRelease: BackCatalogReleaseFileUpload = {
             performers: releasePerformers,
             title: releaseTitle,
             version: releaseVersion,

@@ -1215,7 +1215,7 @@ export default function SingleReleaseRequest() {
                 {/* release performers */}
                 <div className="row-field" >
 
-                    <label className="input shifted">ИСПОЛНИТЕЛИ <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">ИСПОЛНИТЕЛИ <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1243,7 +1243,7 @@ export default function SingleReleaseRequest() {
 
                 {/* release title */}
                 <div className="row-field">
-                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input shifted">НАЗВАНИЕ РЕЛИЗА <span className="star" style={{ color: 'white' }}>*</span></label>
                     <div className="row-field-input-container">
                         <TooltipProvider>
                             <Tooltip>
@@ -1299,7 +1299,7 @@ export default function SingleReleaseRequest() {
                     className="release-genre-selector"
                     {...invalidFieldKeys.has(`release-genre`) ? { style: { border: "1px solid red", marginRight: "0px" } } : { style: { marginRight: "0px" } }}
                 >
-                    <label className="input genre">ЖАНР <span style={{ color: 'red' }}>*</span></label>
+                    <label className="input genre">ЖАНР <span className="star" style={{ color: 'white' }}>*</span></label>
                     <select
                         value={releaseGenre}
                         onChange={handleChangeReleaseGenre as any}
@@ -1314,7 +1314,7 @@ export default function SingleReleaseRequest() {
                 {cloudUpload ? (
                     <>
                         <div className="right-track-field" style={{ width: "20vw" }}>
-                            <label className="input shifted">ИСХОДНИКИ <span style={{ color: 'red' }}>*</span></label>
+                            <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1343,7 +1343,7 @@ export default function SingleReleaseRequest() {
                                 <TooltipTrigger asChild>
                                     <div className="release-cover-selector" >
                                         <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                                        <label className="input cover">ОБЛОЖКА <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input cover">ОБЛОЖКА <span className="star" style={{ color: 'white' }}>*</span></label>
                                         {!releaseCoverFile ? (
                                             <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1356,7 +1356,7 @@ export default function SingleReleaseRequest() {
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    Remix / prod.by / Acoustic и т.д х
+                                    Обложка в формате jpeg 3000x3000.
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -1367,7 +1367,7 @@ export default function SingleReleaseRequest() {
                                 <TooltipTrigger asChild>
                                     <div className="release-cover-selector">
                                         <input accept=".mp4,.webm,.ogg,.mkv,.flv,.avi,.wmv,.mov,.mpeg" onChange={handleChangeReleaseVideoFile} type="file" className="full-cover" />
-                                        <label className="input cover">ВИДЕО КЛИПА <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="input cover">ВИДЕО КЛИПА <span className="star" style={{ color: 'white' }}>*</span></label>
                                         {!releaseVideoFile ? (
                                             <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1401,7 +1401,7 @@ export default function SingleReleaseRequest() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <div>
-                                                    <label className="input downgap">В КЛИПЕ ЕСТЬ МАТ? <span style={{ color: 'red' }}>*</span></label>
+                                                    <label className="input downgap">В КЛИПЕ ЕСТЬ МАТ? <span className="star" style={{ color: 'white' }}>*</span></label>
                                                     <div className="responsive-selector-field">
                                                         <span onClick={() => handleChangeClipIsExplicit(index, true)} className={"responsive-selector" + (clipForm.explicit ? " active" : '')} id="0">ДА /</span>
                                                         <span onClick={() => handleChangeClipIsExplicit(index, false)} className={"responsive-selector" + (!clipForm.explicit ? " active" : '')} id="0"> НЕТ</span>
@@ -1422,7 +1422,7 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ <span className="star" style={{ color: 'white' }}>*</span></label>
                                                 <input
                                                     value={clipForm.performersNames}
                                                     onChange={(e) => handleChangeClipPerformersNames(e, index)}
@@ -1444,7 +1444,7 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ <span className="star" style={{ color: 'white' }}>*</span></label>
                                                 <input
                                                     value={clipForm.musicAuthorsNames}
                                                     onChange={(e) => handleChangeClipMusicAuthors(e, index)}
@@ -1488,7 +1488,7 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ <span className="star" style={{ color: 'white' }}>*</span></label>
                                                 <input
                                                     value={clipForm.phonogramProducersNames}
                                                     onChange={(e) => handleChangeClipPhonogramProducers(e, index)}
@@ -1510,7 +1510,7 @@ export default function SingleReleaseRequest() {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="right-track-field">
-                                                <label className="input shifted">ФИО РЕЖИССЁРОВ <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="input shifted">ФИО РЕЖИССЁРОВ <span className="star" style={{ color: 'white' }}>*</span></label>
                                                 <input
                                                     value={clipForm.directorsNames}
                                                     onChange={(e) => handleChangeClipDirectorsNames(e, index)}
