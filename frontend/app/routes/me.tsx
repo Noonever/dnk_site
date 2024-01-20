@@ -294,6 +294,7 @@ export default function UserProfile() {
                         className="field"
                         value={kzPassport.fullName}
                         onChange={(event) => handleChangeKzPassport(event, 'fullName')}
+                        placeholder="Иванов Иван Иванович"
                         {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
                     />
                 </div>
@@ -381,6 +382,7 @@ export default function UserProfile() {
                         className="field"
                         value={byPassport.fullName}
                         onChange={(event) => handleChangeByPassport(event, 'fullName')}
+                        placeholder="Иванов Иван Иванович"
                         {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
                     />
                 </div>
