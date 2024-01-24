@@ -63,7 +63,7 @@ class NewMusicReleaseFileUpload(CoverFileMixin, NewMusicReleaseBaseUpload):
     tracks: List[NewMusicTrackFilesUpload]
 
 
-class NewMusicReleaseCloudUpload(CloudLinkMixin, NewMusicReleaseBaseUpload):
+class NewMusicReleaseCloudUpload(NewMusicReleaseBaseUpload):
     tracks: List[NewMusicTrackBaseUpload]
 
 
@@ -80,7 +80,7 @@ class BackCatalogReleaseFileUpload(CoverFileMixin, BackCatalogReleaseBaseUpload)
     tracks: List[BackCatalogTrackFileUpload]
 
 
-class BackCatalogReleaseCloudUpload(CloudLinkMixin, BackCatalogReleaseBaseUpload):
+class BackCatalogReleaseCloudUpload(BackCatalogReleaseBaseUpload):
     tracks: List[BackCatalogTrackBaseUpload]
 
 
@@ -101,7 +101,7 @@ class ClipReleaseFileUpload(CoverFileMixin, VideoFileMixin, ClipReleaseBaseUploa
     pass
 
 
-class ClipReleaseCloudUpload(CloudLinkMixin, ClipReleaseBaseUpload):
+class ClipReleaseCloudUpload(ClipReleaseBaseUpload):
     pass
 
 
@@ -125,23 +125,29 @@ class ReleaseBaseUploadRequest(CamelCaseModel):
     in_delivery_sheet: bool = False
     in_docs_sheet: bool = False
     status: Literal['pending', 'accepted', 'error'] = 'pending'
-    type: Literal["new-music", "back-catalog", "clip"] 
+    type: Literal["new-music", "back-catalog", "clip"]
+    cloud_link: Optional[str]
     authors: list[Author]
 
 
 class ReleaseFileUploadRequest(ReleaseBaseUploadRequest):
-    data: Union[NewMusicReleaseFileUpload, BackCatalogReleaseFileUpload, ClipReleaseFileUpload]
+    data: Union[BackCatalogReleaseFileUpload, NewMusicReleaseFileUpload, ClipReleaseFileUpload]
 
 
 class ReleaseCloudUploadRequest(ReleaseBaseUploadRequest):
-    data: Union[NewMusicReleaseCloudUpload, BackCatalogReleaseCloudUpload, ClipReleaseCloudUpload]
+    data: Union[BackCatalogReleaseCloudUpload, NewMusicReleaseCloudUpload, ClipReleaseCloudUpload]
+    cloud_link: str
+
+class ReleaseFileRequestOut(ReleaseFileUploadRequest):
+    id: str
 
 
-class ReleaseRequestOut(ReleaseFileUploadRequest):
+class ReleaseCloudRequestOut(ReleaseCloudUploadRequest):
     id: str
 
 
 class ReleaseRequestUpdate(CamelCaseModel):
-    date: str
-    imprint: str
-    data: Union[BackCatalogReleaseFileUpload, NewMusicReleaseFileUpload, ClipReleaseFileUpload]
+    date: Optional[str]
+    imprint: Optional[str]
+    cloud_link: Optional[str]
+    data: Union[BackCatalogReleaseFileUpload, NewMusicReleaseFileUpload, ClipReleaseFileUpload, BackCatalogReleaseCloudUpload, NewMusicReleaseCloudUpload, ClipReleaseCloudUpload]

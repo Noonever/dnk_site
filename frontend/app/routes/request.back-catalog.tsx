@@ -4,7 +4,7 @@ import type { LinksFunction, LoaderArgs, MetaFunction } from "@remix-run/node";
 
 import { uploadFile } from "~/backend/file";
 import { uploadBackCatalogReleaseRequest } from "~/backend/release";
-import type { BackCatalogReleaseFileUpload, BackCatalogTrackUpload } from "~/types/release";
+import type { BackCatalogReleaseUpload, BackCatalogTrackUpload } from "~/types/release";
 import type { ByPassportData, ForeignPassportData, KzPassportData, RuPassportData } from "~/types/user_data";
 import type { AuthorForm, AuthorDocs, Author } from "~/types/author";
 
@@ -27,8 +27,8 @@ import type { User } from "~/types/user";
 import { getUserByUsername } from "~/backend/user";
 
 const fullNameRePattern = fullNamesRePattern
-const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
-const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+const kzPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]\d{8}$/
+const byPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]{2}\d{7}$/
 
 const ruPassportNumberRePattern = /^\d{4} \d{6}$/
 const ruCodeRePattern = /^\d{3}-\d{3}$/
@@ -371,7 +371,7 @@ export default function AlbumReleaseRequest() {
         const file = event.target.files[0];
         const newTrackForms = [...trackForms];
 
-        if (file.type !== "text/plain") {
+        if (file.type !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
             newTrackForms[trackId].textFile = undefined
             alert("Неверный формат файла");
         } else {
@@ -578,7 +578,6 @@ export default function AlbumReleaseRequest() {
             err_notificate("Некоторые поля заполнены некорректно")
             return
         }
-
         // Check if release main data is filled
         if (releasePerformers === "") {
             err_notificate("Заполните исполнителей релиза")
@@ -640,27 +639,27 @@ export default function AlbumReleaseRequest() {
         for (let [index, track] of trackForms.entries()) {
 
             if (track.performers === "") {
-                err_notificate(`Укажите исполнителей трека ${index + 1}`)
+                err_notificate(`Заполните исполнителей трека ${index + 1}`)
                 return
             }
             if (track.title === "") {
-                err_notificate(`Укажите название трека ${index + 1}`)
+                err_notificate(`Заполните название трека ${index + 1}`)
                 return
             }
             if (track.performersNames === "") {
-                err_notificate(`Укажите исполнителей трека ${index + 1}`)
+                err_notificate(`Заполните исполнителей трека ${index + 1}`)
                 return
             }
             if (track.musicAuthorsNames === "") {
-                err_notificate(`Укажите авторов музыки трека ${index + 1}`)
+                err_notificate(`Заполните авторов музыки трека ${index + 1}`)
                 return
             }
             if (track.phonogramProducersNames === "") {
-                err_notificate(`Укажите производителей фонограммы трека ${index + 1}`)
+                err_notificate(`Заполните производителей фонограммы трека ${index + 1}`)
                 return
             }
             if (track.isrc === "") {
-                err_notificate(`Укажите ISRC трека ${index + 1}`)
+                err_notificate(`Заполните ISRC трека ${index + 1}`)
                 return
             }
 
@@ -719,7 +718,7 @@ export default function AlbumReleaseRequest() {
             }
 
             // Setting up release
-            const backCatalogRelease: BackCatalogReleaseFileUpload = {
+            const backCatalogRelease: BackCatalogReleaseUpload = {
                 performers: releasePerformers,
                 title: releaseTitle,
                 version: releaseVersion,
@@ -735,7 +734,7 @@ export default function AlbumReleaseRequest() {
                 username,
                 backCatalogRelease,
                 authorsToSend,
-                cloudLink,
+                cloudLink || '',
             )
             if (response === 200) {
                 setLoadingModalIsOpened(false)
@@ -1145,7 +1144,6 @@ export default function AlbumReleaseRequest() {
                                 value={kzPassport.fullName}
                                 onChange={(event) => handleChangeCurrentPassport('fullName', event.target.value)}
                                 {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
-
                             />
                         </div>
 
@@ -1345,7 +1343,7 @@ export default function AlbumReleaseRequest() {
                             <label className="input shifted">Дата окончания</label>
                             <input
                                 className="field"
-                                value={foreignPassport.issueDate}
+                                value={foreignPassport.endDate}
                                 onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
                                 type={"date"}
                             />

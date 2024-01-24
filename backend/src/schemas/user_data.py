@@ -99,9 +99,25 @@ class OooLegalEntity(CamelCaseModel):
     usn_or_nds: bool
 
 
+class ForeignLegalEntity(CamelCaseModel):
+    entity_name: str
+    director_full_name: str
+    legal_address: str
+    registration_date: str
+    registration_number: str
+    bank_name: str
+    bik: str
+    account_number: str
+    correspondent_bank_name: str
+    correspondent_bank_inn: str
+    correspondent_bank_bik: str
+    rubles_account: str
+    correspondent_account: str
+
+
 class UserData(CamelCaseModel):
     current_passport: Literal['ru', 'kz', 'by', 'foreign']
-    current_legal_entity: Literal['self', 'individual', 'ooo']
+    current_legal_entity: Literal['self', 'individual', 'ooo', 'foreign']
     email: str
     socials: str
     ru_passport: RuPassport
@@ -111,6 +127,8 @@ class UserData(CamelCaseModel):
     self_employed_legal_entity: SelfEmployedLegalEntity
     individual_entrepreneur_legal_entity: IndividualEntrepreneurLegalEntity
     ooo_legal_entity: OooLegalEntity
+    foreign_legal_entity: ForeignLegalEntity
+
 
 initial_user_data = UserData(
     currentPassport='ru',
@@ -212,5 +230,20 @@ initial_user_data = UserData(
         correspondentAccount='',
         edoAvailability='',
         usnOrNds=True
+    ),
+    foreignLegalEntity=ForeignLegalEntity(
+        entityName='',
+        directorFullName='',
+        legalAddress='',
+        registrationDate='',
+        registrationNumber='',
+        bankName='',
+        bik='',
+        accountNumber='',
+        correspondentBankName='',
+        correspondentBankInn='',
+        correspondentBankBik='',
+        rublesAccount='',
+        correspondentAccount=''
     )
 )

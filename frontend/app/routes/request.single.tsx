@@ -27,8 +27,8 @@ import type { User } from "~/types/user";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
-const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
-const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+const kzPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]\d{8}$/
+const byPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]{2}\d{7}$/
 
 const ruPassportNumberRePattern = /^\d{4} \d{6}$/
 const ruCodeRePattern = /^\d{3}-\d{3}$/
@@ -352,11 +352,11 @@ export default function SingleReleaseRequest() {
 
         // Check if release main data is filled
         if (releasePerformers === "") {
-            err_notificate("Укажите исполнителей релиза")
+            err_notificate("Заполните исполнителей релиза")
             return
         }
         if (releaseTitle === "") {
-            err_notificate("Укажите название релиза")
+            err_notificate("Заполните название релиза")
             return
         }
 
@@ -408,15 +408,15 @@ export default function SingleReleaseRequest() {
         for (let [index, track] of trackForms.entries()) {
 
             if (track.performersNames === "") {
-                err_notificate(`Укажите исполнителей`)
+                err_notificate(`Заполните исполнителей`)
                 return
             }
             if (track.musicAuthorsNames === "") {
-                err_notificate(`Укажите авторов музыки`)
+                err_notificate(`Заполните авторов музыки`)
                 return
             }
             if (track.phonogramProducersNames === "") {
-                err_notificate(`Укажите производителей фонограммы трека`)
+                err_notificate(`Заполните производителей фонограммы трека`)
                 return
             }
 
@@ -463,7 +463,6 @@ export default function SingleReleaseRequest() {
                 for (let [index, trackTextFile] of Object.entries(tracksTextFiles)) {
                     tracks[Number(index)].textFileId = await uploadFile(trackTextFile)
                 }
-
                 for (let [index, authorFile] of Object.entries(authorsFiles)) {
                     authorsToSend[Number(index)].data = await uploadFile(authorFile)
                 }
@@ -1096,7 +1095,7 @@ export default function SingleReleaseRequest() {
                             <label className="input shifted">Дата окончания</label>
                             <input
                                 className="field"
-                                value={foreignPassport.issueDate}
+                                value={foreignPassport.endDate}
                                 onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
                                 type={"date"}
                             />

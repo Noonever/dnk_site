@@ -1,2 +1,2 @@
-from .release import ReleaseFileUploadRequest, ReleaseCloudUploadRequest, ReleaseRequestOut, ReleaseRequestUpdate
+from .release import ReleaseFileUploadRequest, ReleaseCloudUploadRequest, ReleaseFileRequestOut, ReleaseCloudRequestOut, ReleaseRequestUpdate
 from .user import UserAdd, UserLogin, UserOut 

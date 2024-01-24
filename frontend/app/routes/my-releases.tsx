@@ -87,6 +87,7 @@ type processedClipReleaseData = {
 type processedRelease = {
     id: string,
     type: "new-music" | "clip" | "back-catalog",
+    cloudLink: string,
     data: processedMusicReleaseData | processedBackCatalogReleaseData | processedClipReleaseData,
     date: string,
 }
@@ -104,6 +105,12 @@ export default function MyReleases() {
     const userProcessedReleases = data
 
     const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | undefined>(undefined);
+    let currentCloudLink: string | undefined
+    if (selectedReleaseIndex) {
+        currentCloudLink = userProcessedReleases[selectedReleaseIndex]?.cloudLink
+    } else {
+        currentCloudLink = undefined
+    }
     console.log(selectedReleaseIndex)
     const [filteredIndices, setFilteredIndices] = useState<number[]>([]);
 
@@ -204,25 +211,39 @@ export default function MyReleases() {
                     {/* release genre */}
                     <div
                         className="release-genre-selector"
-                        style={{justifyContent: "center", alignItems: "center"}}
+                        style={{ justifyContent: "center", alignItems: "center" }}
                     >
                         <label className="input genre">{"ЖАНР:   " + releaseData.genre}</label>
                     </div>
 
-                    {/* release cover */}
-                    <div className="release-cover-selector">
-                        <label className="input cover">ОБЛОЖКА</label>
-                        <a className="full-cover" href={releaseData.coverLink} target="_blank" rel="noreferrer">{releaseData.coverLink}</a>
-                        {false ? (
-                            <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        ) : (
-                            <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        )}
-                    </div>
+                    {currentCloudLink ? (
+                        <>
+                            <div className="right-track-field" style={{ width: "20vw" }}>
+                                <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
+                                <input
+                                    value={currentCloudLink}
+                                    className="track-field"
+                                    placeholder="https://www.example.com"
+                                    type="text"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="release-cover-selector">
+                            <label className="input cover">ОБЛОЖКА</label>
+                            <a className="full-cover" href={releaseData.coverLink} target="_blank" rel="noreferrer">{releaseData.coverLink}</a>
+                            {false ? (
+                                <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            ) : (
+                                <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            )}
+                        </div>
+                    )}
+
 
                 </div>
                 {releaseData.tracks.map((track, index) => (
@@ -308,42 +329,44 @@ export default function MyReleases() {
 
                                 </div>
 
-                                <div className="lower-left-track-fields">
+                                {!currentCloudLink && (
+                                    <div className="lower-left-track-fields">
 
-                                    {/* wav file */}
-                                    <div className="load-row">
-                                        <div className="load-file">
-                                            <label className="input">.WAV</label>
-                                            <a className="full-cover" target="_blank" rel="noreferrer" href={track.wavLink}>{track.wavLink}</a>
-                                            {false ? (
-                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            ) : (
-                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            )}
+                                        {/* wav file */}
+                                        <div className="load-row">
+                                            <div className="load-file">
+                                                <label className="input">.WAV</label>
+                                                <a className="full-cover" target="_blank" rel="noreferrer" href={track.wavLink}>{track.wavLink}</a>
+                                                {false ? (
+                                                    <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* text file */}
+                                        <div className="load-row" >
+                                            <div className="load-file">
+                                                <label className="input">ТЕКСТ</label>
+                                                <a className="full-cover" href={track.textLink ? track.textLink : undefined}>{track.textLink}</a>
+                                                {!track.textLink ? (
+                                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* text file */}
-                                    <div className="load-row" >
-                                        <div className="load-file">
-                                            <label className="input">ТЕКСТ</label>
-                                            <a className="full-cover" href={track.textLink ? track.textLink : undefined}>{track.textLink}</a>
-                                            {!track.textLink ? (
-                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M3 14.5818C1.79401 13.7538 1 12.3438 1 10.7436C1 8.33993 2.79151 6.36543 5.07974 6.14807C5.54781 3.22783 8.02024 1 11 1C13.9798 1 16.4522 3.22783 16.9203 6.14807C19.2085 6.36543 21 8.33993 21 10.7436C21 12.3438 20.206 13.7538 19 14.5818M7 14.3333L11 10.2308M11 10.2308L15 14.3333M11 10.2308V19.4615" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            ) : (
-                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                                )}
                             </div>
 
                             <div className="right-track-fields">
@@ -477,28 +500,41 @@ export default function MyReleases() {
 
                 </div>
 
-                <div className="release-other-fields spaced" style={{alignItems: "center"}}>
+                <div className="release-other-fields spaced" style={{ alignItems: "center" }}>
 
                     {/* release genre */}
                     <div
                         className="release-genre-selector"
-                        style={{justifyContent: "center", alignItems: "center"}}
+                        style={{ justifyContent: "center", alignItems: "center" }}
                     >
                         <label className="input genre">{"ЖАНР:   " + releaseData.genre}</label>
                     </div>
 
-                    {/* release cover */}
-                    <div className="release-cover-selector">
-                        <a className="full-cover" href={releaseData.coverLink}>{releaseData.coverLink}</a>
-                        <label className="input cover">ОБЛОЖКА</label>
+                    {currentCloudLink ? (
+                        <>
+                            <div className="right-track-field" style={{ width: "20vw" }}>
+                                <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
+                                <input
+                                    value={currentCloudLink}
+                                    className="track-field"
+                                    placeholder="https://www.example.com"
+                                    type="text"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="release-cover-selector">
+                            <a className="full-cover" href={releaseData.coverLink}>{releaseData.coverLink}</a>
+                            <label className="input cover">ОБЛОЖКА</label>
 
-                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                            <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
 
-                    </div>
+                        </div>
+                    )}
                     {/* release back catalog */}
-                    <div className='back-catalog-fields' style={{height: '7.93vh'}}>
+                    <div className='back-catalog-fields' style={{ height: '7.93vh' }}>
 
                         {/* Release UPC */}
                         <div className="back-catalog-field">
@@ -523,175 +559,180 @@ export default function MyReleases() {
                     </div>
                 </div>
 
-                {releaseData.tracks.map((track, index) => {
-                    return (
-                        <div key={index} style={{ width: '100%' }}>
-                            <div key={index} className="track-header">
+                {
+                    releaseData.tracks.map((track, index) => {
+                        return (
+                            <div key={index} style={{ width: '100%' }}>
+                                <div key={index} className="track-header">
 
-                                {/* track number */}
-                                <div className="index-button-container">
-                                    <button disabled={true} className="round">{index + 1}</button>
-                                </div>
-
-                                <div className="row-fields" style={{ width: '100%' }}>
-
-                                    {/* track performers */}
-                                    <div className="row-field" >
-                                        <label className="input shifted">ИСПОЛНИТЕЛИ</label>
-                                        <div className="row-field-input-container" style={{ marginBottom: '2vh' }}>
-                                            <input
-                                                disabled={true}
-                                                defaultValue={track.performers}
-                                                id="left"
-                                                className="field release"
-                                            />
-                                        </div>
+                                    {/* track number */}
+                                    <div className="index-button-container">
+                                        <button disabled={true} className="round">{index + 1}</button>
                                     </div>
 
-                                    {/* track title */}
-                                    <div className="row-field">
-                                        <label className="input shifted">НАЗВАНИЕ ТРЕКА</label>
-                                        <div className="row-field-input-container">
-                                            <input
-                                                disabled={true}
-                                                defaultValue={track.title}
-                                                name="release-title"
-                                                className="field release"
-                                            />
-                                        </div>
-                                    </div>
+                                    <div className="row-fields" style={{ width: '100%' }}>
 
-                                    {/* track version */}
-                                    <div className="row-field" id="right">
-                                        <label className="input shifted">ВЕРСИЯ</label>
-                                        <div className="row-field-input-container">
-                                            <input
-                                                disabled={true}
-                                                defaultValue={track.version}
-                                                id="right"
-                                                className="field release"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div className="track-form">
-
-                                <div className="left-track-fields">
-
-                                    <div id='upper-left-track-fields'>
-
-                                        {/* explicit */}
-                                        <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ?</label>
-                                        <div className="responsive-selector-field">
-                                            <span className="responsive-selector active" id="0">{track.explicit ? "ДА" : 'НЕТ'}</span>
-                                        </div>
-
-                                        <label className="input downgap">ПРЕВЬЮ</label>
-                                        <input
-                                            disabled={true}
-                                            defaultValue={track.preview}
-                                            className="preview"
-                                        />
-
-                                        {/* isCover */}
-                                        <label className="input downgap">КАВЕР?</label>
-                                        <div className="responsive-selector-field">
-                                            <span className="responsive-selector active" id="0">{track.isCover ? "ДА" : 'НЕТ'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="lower-left-track-fields">
-
-                                        {/* wav file */}
-                                        <div className="load-row">
-                                            <div className="load-file">
-                                                <label className="input">.WAV</label>
-                                                <a className="full-cover" href={track.wavLink}>{track.wavLink}</a>
-                                                <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
+                                        {/* track performers */}
+                                        <div className="row-field" >
+                                            <label className="input shifted">ИСПОЛНИТЕЛИ</label>
+                                            <div className="row-field-input-container" style={{ marginBottom: '2vh' }}>
+                                                <input
+                                                    disabled={true}
+                                                    defaultValue={track.performers}
+                                                    id="left"
+                                                    className="field release"
+                                                />
                                             </div>
                                         </div>
 
-                                        {/* text file */}
-                                        <div className="load-row">
-                                            <div className="load-file">
-                                                <label className="input">ТЕКСТ</label>
-                                                <a className="full-cover" href={track.textLink}>{track.textLink}</a>
-                                                <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
+                                        {/* track title */}
+                                        <div className="row-field">
+                                            <label className="input shifted">НАЗВАНИЕ ТРЕКА</label>
+                                            <div className="row-field-input-container">
+                                                <input
+                                                    disabled={true}
+                                                    defaultValue={track.title}
+                                                    name="release-title"
+                                                    className="field release"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* track version */}
+                                        <div className="row-field" id="right">
+                                            <label className="input shifted">ВЕРСИЯ</label>
+                                            <div className="row-field-input-container">
+                                                <input
+                                                    disabled={true}
+                                                    defaultValue={track.version}
+                                                    id="right"
+                                                    className="field release"
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="right-track-fields">
-
-                                    {/* track performers names */}
-                                    <div className="right-track-field">
-                                        <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ</label>
-                                        <input
-                                            disabled={true}
-                                            defaultValue={track.performersNames}
-                                            className="track-field"
-                                        />
-                                    </div>
-
-                                    {/* track music authors */}
-                                    <div className="right-track-field">
-                                        <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ</label>
-                                        <input
-                                            disabled={true}
-                                            defaultValue={track.musicAuthorsNames}
-                                            className="track-field"
-                                        />
-                                    </div>
-
-                                    {/* track lyricists */}
-                                    <div className="right-track-field">
-                                        <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
-                                        <input
-                                            disabled={true}
-                                            defaultValue={track.lyricistsNames}
-                                            className="track-field"
-                                        />
-                                    </div>
-
-                                    {/* track phonogram producers */}
-                                    <div className="right-track-field">
-                                        <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ</label>
-                                        <input
-                                            disabled={true}
-                                            defaultValue={track.phonogramProducersNames}
-                                            className="track-field"
-                                        />
-                                    </div>
 
                                 </div>
-                                <div className="copy-button-container">
+                                <div className="track-form">
 
+                                    <div className="left-track-fields">
+
+                                        <div id='upper-left-track-fields'>
+
+                                            {/* explicit */}
+                                            <label className="input downgap">В ПЕСНЕ ЕСТЬ МАТ?</label>
+                                            <div className="responsive-selector-field">
+                                                <span className="responsive-selector active" id="0">{track.explicit ? "ДА" : 'НЕТ'}</span>
+                                            </div>
+
+                                            <label className="input downgap">ПРЕВЬЮ</label>
+                                            <input
+                                                disabled={true}
+                                                defaultValue={track.preview}
+                                                className="preview"
+                                            />
+
+                                            {/* isCover */}
+                                            <label className="input downgap">КАВЕР?</label>
+                                            <div className="responsive-selector-field">
+                                                <span className="responsive-selector active" id="0">{track.isCover ? "ДА" : 'НЕТ'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="lower-left-track-fields">
+
+                                            {!currentCloudLink && (
+                                                <>
+                                                    <div className="load-row">
+                                                        <div className="load-file">
+                                                            <label className="input">.WAV</label>
+                                                            <a className="full-cover" href={track.wavLink}>{track.wavLink}</a>
+                                                            <svg className="button" width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="load-row">
+                                                        <div className="load-file">
+                                                            <label className="input">ТЕКСТ</label>
+                                                            <a className="full-cover" href={track.textLink}>{track.textLink}</a>
+                                                            <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                        </div>
+                                    </div>
+
+                                    <div className="right-track-fields">
+
+                                        {/* track performers names */}
+                                        <div className="right-track-field">
+                                            <label className="input shifted">ФИО ИСПОЛНИТЕЛЕЙ</label>
+                                            <input
+                                                disabled={true}
+                                                defaultValue={track.performersNames}
+                                                className="track-field"
+                                            />
+                                        </div>
+
+                                        {/* track music authors */}
+                                        <div className="right-track-field">
+                                            <label className="input shifted">ФИО АВТОРОВ МУЗЫКИ</label>
+                                            <input
+                                                disabled={true}
+                                                defaultValue={track.musicAuthorsNames}
+                                                className="track-field"
+                                            />
+                                        </div>
+
+                                        {/* track lyricists */}
+                                        <div className="right-track-field">
+                                            <label className="input shifted">ФИО АВТОРОВ СЛОВ</label>
+                                            <input
+                                                disabled={true}
+                                                defaultValue={track.lyricistsNames}
+                                                className="track-field"
+                                            />
+                                        </div>
+
+                                        {/* track phonogram producers */}
+                                        <div className="right-track-field">
+                                            <label className="input shifted">ФИО ИЗГОТОВИТЕЛЕЙ ФОНОГРАММЫ</label>
+                                            <input
+                                                disabled={true}
+                                                defaultValue={track.phonogramProducersNames}
+                                                className="track-field"
+                                            />
+                                        </div>
+
+                                    </div>
+                                    <div className="copy-button-container">
+
+                                    </div>
                                 </div>
+
+
+                                {/* Track ISRC */}
+                                <div className="back-catalog-field" style={{ marginTop: "2vh" }}>
+                                    <label className="input">ISRC: </label>
+                                    <input
+                                        disabled={true}
+                                        defaultValue={track.isrc}
+                                        className="back-catalog"
+                                    />
+                                </div>
+
                             </div>
+                        )
+                    })
+                }
 
-
-                            {/* Track ISRC */}
-                            <div className="back-catalog-field" style={{ marginTop: "2vh" }}>
-                                <label className="input">ISRC: </label>
-                                <input
-                                    disabled={true}
-                                    defaultValue={track.isrc}
-                                    className="back-catalog"
-                                />
-                            </div>
-
-                        </div>
-                    )
-                })}
-
-            </div>
+            </div >
 
         )
     }
@@ -768,33 +809,27 @@ export default function MyReleases() {
 
                 </div>
 
-                <div className="release-other-fields spaced" style={{alignItems: "center"}}>
+                <div className="release-other-fields spaced" style={{ alignItems: "center" }}>
 
                     {/* release genre */}
                     <div
                         className="release-genre-selector"
-                        style={{justifyContent: "center", alignItems: "center"}}
+                        style={{ justifyContent: "center", alignItems: "center" }}
                     >
                         <label className="input genre">{"ЖАНР:   " + releaseData.genre}</label>
                     </div>
 
-                    {/* release cover */}
-                    <div className="release-cover-selector">
-                        <a className="full-cover" href={releaseData.coverLink}>{releaseData.coverLink}</a>
-                        <label className="input cover">ОБЛОЖКА</label>
-                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="white" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </div>
-
-                    {/* release link */}
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <label className="input shifted">ССЫЛКА НА КЛИП</label>
-                        <input
-                            defaultValue={releaseData.clipLink}
-                            className="back-catalog"
-                        />
-                    </div>
+                    <>
+                        <div className="right-track-field" style={{ width: "20vw" }}>
+                            <label className="input shifted">ИСХОДНИКИ <span className="star" style={{ color: 'white' }}>*</span></label>
+                            <input
+                                value={currentCloudLink}
+                                className="track-field"
+                                placeholder="https://www.example.com"
+                                type="text"
+                            />
+                        </div>
+                    </>
 
                 </div>
 

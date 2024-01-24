@@ -72,6 +72,22 @@ interface OooLegalEntity {
     usnOrNds: boolean;
 }
 
+interface ForeignLegalEntity {
+    entityName: string;
+    directorFullName: string;
+    legalAddress: string;
+    registrationDate: string;
+    registrationNumber: string;
+    bankName: string;
+    bik: string;
+    accountNumber: string;
+    correspondentBankName: string;
+    correspondentBankInn: string;
+    correspondentBankBik: string;
+    rublesAccount: string;
+    correspondentAccount: string;
+}
+
 export interface UserData {
     currentPassport: 'ru' | 'kz' | 'by' | 'foreign';
     ruPassport: {
@@ -94,12 +110,13 @@ export interface UserData {
         firstPageScanId: string;
         secondPageScanId: string;
     };
-    currentLegalEntity: 'self' | 'individual' | 'ooo';
-    selfEmployedLegalEntity: SelfEmployedLegalEntity;
+    currentLegalEntity: 'self' | 'individual' | 'ooo' | 'foreign';
     email: string;
     socials: string;
+    selfEmployedLegalEntity: SelfEmployedLegalEntity;
     individualEntrepreneurLegalEntity: IndividualEntrepreneurLegalEntity;
     oooLegalEntity: OooLegalEntity;
+    foreignLegalEntity: ForeignLegalEntity;
 }
 
-export type {KzPassportData, RuPassportData, ByPassportData, ForeignPassportData}
+export type { KzPassportData, RuPassportData, ByPassportData, ForeignPassportData }

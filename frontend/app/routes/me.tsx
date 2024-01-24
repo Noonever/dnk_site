@@ -12,9 +12,9 @@ import CustomSelect from "~/components/select";
 import { fullNameRePattern } from "~/utils/regexp";
 
 const tenDigitsRePattern = /^\d{10}$/
-const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
+const kzPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]\d{8}$/
 const kzPassportIdRePattern = /^\d{12}$/
-const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+const byPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]{2}\d{7}$/
 const innRePattern = /^\d{12}$/
 const bankAccountRePattern = /^\d{20}$/
 const bikRePattern = /^\d{9}$/
@@ -53,9 +53,7 @@ export async function loader({ request }: LoaderArgs) {
 
 export default function UserProfile() {
     const loaderData = useLoaderData<typeof loader>();
-    const username = loaderData.username
-    const userData = loaderData.userData
-    const user = loaderData.user
+    const { username, userData } = loaderData;
 
     const [currentPassportType, setCurrentPassportType] = useState(userData.currentPassport);
     const [currentLegalEntityType, setCurrentLegalEntityType] = useState(userData.currentLegalEntity);
@@ -91,6 +89,7 @@ export default function UserProfile() {
     const [selfEmployedLegalEntity, setSelfEmployedLegalEntity] = useState<UserData["selfEmployedLegalEntity"]>(userData.selfEmployedLegalEntity);
     const [individualEntrepreneurLegalEntity, setIndividualEntrepreneurLegalEntity] = useState<UserData['individualEntrepreneurLegalEntity']>(userData.individualEntrepreneurLegalEntity);
     const [OOOLegalEntity, setOOOLegalEntity] = useState<UserData["oooLegalEntity"]>(userData.oooLegalEntity);
+    const [foreignLegalEntity, setForeignLegalEntity] = useState<UserData["foreignLegalEntity"]>(userData.foreignLegalEntity);
 
     const handleChangeRuPassport = (event: React.ChangeEvent<HTMLInputElement>, fieldName: keyof UserData["ruPassport"]['data']) => {
 
@@ -296,6 +295,7 @@ export default function UserProfile() {
                         onChange={(event) => handleChangeKzPassport(event, 'fullName')}
                         placeholder="Иванов Иван Иванович"
                         {...invalidFieldKeys.has('passport-fullName') && { style: { border: "1px solid red" } }}
+    data
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -512,7 +512,7 @@ export default function UserProfile() {
                     <input
                         disabled={!passportEditable}
                         className="field"
-                        value={foreignPassport.issueDate}
+                        value={foreignPassport.endDate}
                         onChange={(event) => handleChangeForeignPassport(event, 'endDate')}
                         type={"date"}
                     />
@@ -631,6 +631,27 @@ export default function UserProfile() {
         setOOOLegalEntity(newOOOLegalEntity)
     }
 
+    const handleChangeForeignLegalEntity = (
+        value: string,
+        fieldName: keyof UserData['foreignLegalEntity']
+    ) => {
+        console.log('foreign', fieldName, value)
+        let isValid = true
+        const newForeignLegalEntity = { ...foreignLegalEntity }
+        const newInvalidFieldKeys = new Set(invalidFieldKeys)
+
+        if (!isValid) {
+            newInvalidFieldKeys.add(`legalEntity-${fieldName}`)
+        } else {
+            newInvalidFieldKeys.delete(`legalEntity-${fieldName}`)
+        }
+
+        newForeignLegalEntity[fieldName] = value
+
+        setInvalidFieldKeys(newInvalidFieldKeys)
+        setForeignLegalEntity(newForeignLegalEntity)
+    }
+
     const selfEmployedLegalEntitySection = (
         <div className="legal-entity-section">
             <div className="legal-entity-fields">
@@ -642,6 +663,7 @@ export default function UserProfile() {
                         value={selfEmployedLegalEntity.inn}
                         onChange={(event) => handleChangeSelfEmployedLegalEntity(event, 'inn')}
                         {...invalidFieldKeys.has('legalEntity-inn') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789012"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -651,6 +673,7 @@ export default function UserProfile() {
                         className="field"
                         value={selfEmployedLegalEntity.bankName}
                         onChange={(event) => handleChangeSelfEmployedLegalEntity(event, 'bankName')}
+                        placeholder="ПАО Сбербанк"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -661,6 +684,7 @@ export default function UserProfile() {
                         value={selfEmployedLegalEntity.checkingAccount}
                         onChange={(event) => handleChangeSelfEmployedLegalEntity(event, 'checkingAccount')}
                         {...invalidFieldKeys.has('legalEntity-checkingAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -671,6 +695,7 @@ export default function UserProfile() {
                         value={selfEmployedLegalEntity.bik}
                         onChange={(event) => handleChangeSelfEmployedLegalEntity(event, 'bik')}
                         {...invalidFieldKeys.has('legalEntity-bik') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -681,6 +706,7 @@ export default function UserProfile() {
                         value={selfEmployedLegalEntity.correspondentAccount}
                         onChange={(event) => handleChangeSelfEmployedLegalEntity(event, 'correspondentAccount')}
                         {...invalidFieldKeys.has('legalEntity-correspondentAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
             </div>
@@ -698,6 +724,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.fullName}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'fullName')}
                         {...invalidFieldKeys.has('legalEntity-fullName') && { style: { border: "1px solid red" } }}
+                        placeholder="Иванов Иван Иванович"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -708,6 +735,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.ogrnip}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'ogrnip')}
                         {...invalidFieldKeys.has('legalEntity-ogrnip') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789012345"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -718,6 +746,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.inn}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'inn')}
                         {...invalidFieldKeys.has('legalEntity-inn') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789012"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -727,6 +756,7 @@ export default function UserProfile() {
                         className="field"
                         value={individualEntrepreneurLegalEntity.registrationAddress}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'registrationAddress')}
+                        placeholder="г. Москва, ул. Иванова, д.6, кв.15"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -736,6 +766,7 @@ export default function UserProfile() {
                         className="field"
                         value={individualEntrepreneurLegalEntity.bankName}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'bankName')}
+                        placeholder="ПАО Сбербанк"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -746,6 +777,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.checkingAccount}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'checkingAccount')}
                         {...invalidFieldKeys.has('legalEntity-checkingAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -756,6 +788,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.bik}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'bik')}
                         {...invalidFieldKeys.has('legalEntity-bik') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -766,6 +799,7 @@ export default function UserProfile() {
                         value={individualEntrepreneurLegalEntity.correspondentAccount}
                         onChange={(event) => handleChangeIndividualEntrepreneurLegalEntity(event.target.value, 'correspondentAccount')}
                         {...invalidFieldKeys.has('legalEntity-correspondentAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -780,6 +814,8 @@ export default function UserProfile() {
                                 { value: 'no', label: 'Нет ЭДО' },
                             ]
                         }
+                        defaultLabel="Да, в Контур Диадок"
+                        defaultValue={individualEntrepreneurLegalEntity.edoAvailability}
                         onChange={(value) => handleChangeIndividualEntrepreneurLegalEntity(value, 'edoAvailability')}
                         disabled={!legalEntityEditable}
                     ></CustomSelect>
@@ -798,6 +834,7 @@ export default function UserProfile() {
                         className="field"
                         value={String(OOOLegalEntity.entityName)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'entityName')}
+                        placeholder="ООО Ромашка"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -808,6 +845,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.directorFullName)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'directorFullName')}
                         {...invalidFieldKeys.has('legalEntity-directorFullName') && { style: { border: "1px solid red" } }}
+                        placeholder="Иванов Иван Иванович"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -818,6 +856,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.ogrn)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'ogrn')}
                         {...invalidFieldKeys.has('legalEntity-ogrn') && { style: { border: "1px solid red" } }}
+                        placeholder="1234567890123"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -828,6 +867,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.inn)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'inn')}
                         {...invalidFieldKeys.has('legalEntity-inn') && { style: { border: "1px solid red" } }}
+                        placeholder="1234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -838,6 +878,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.kpp)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'kpp')}
                         {...invalidFieldKeys.has('legalEntity-kpp') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -847,6 +888,7 @@ export default function UserProfile() {
                         className="field"
                         value={String(OOOLegalEntity.legalAddress)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'legalAddress')}
+                        placeholder="г. Москва, ул. Иванова, д.6, кв.15"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -856,6 +898,7 @@ export default function UserProfile() {
                         className="field"
                         value={String(OOOLegalEntity.actualAddress)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'actualAddress')}
+                        placeholder="г. Москва, ул. Иванова, д.6, кв.15"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -865,6 +908,7 @@ export default function UserProfile() {
                         className="field"
                         value={String(OOOLegalEntity.bankName)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'bankName')}
+                        placeholder="ПАО Сбербанк"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -875,6 +919,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.checkingAccount)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'checkingAccount')}
                         {...invalidFieldKeys.has('legalEntity-checkingAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -885,6 +930,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.bik)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'bik')}
                         {...invalidFieldKeys.has('legalEntity-bik') && { style: { border: "1px solid red" } }}
+                        placeholder="123456789"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -895,6 +941,7 @@ export default function UserProfile() {
                         value={String(OOOLegalEntity.correspondentAccount)}
                         onChange={(event) => handleChangeOOOLegalEntity(event.target.value, 'correspondentAccount')}
                         {...invalidFieldKeys.has('legalEntity-correspondentAccount') && { style: { border: "1px solid red" } }}
+                        placeholder="12345678901234567890"
                     />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
@@ -909,6 +956,8 @@ export default function UserProfile() {
                                 { value: 'no', label: 'Нет ЭДО' },
                             ]
                         }
+                        defaultLabel="Да, в Контур Диадок"
+                        defaultValue={OOOLegalEntity.edoAvailability}
                         onChange={(value) => handleChangeOOOLegalEntity(value, 'edoAvailability')}
                         disabled={!legalEntityEditable}
                     ></CustomSelect>
@@ -931,6 +980,135 @@ export default function UserProfile() {
                             setOOOLegalEntity({ ...OOOLegalEntity, usnOrNds: false })
                         }} className={"responsive-selector" + (!OOOLegalEntity.usnOrNds ? " active" : '')} id="0"> НДС</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    )
+    
+    const foreignLegalEntitySection = (
+        <div className="legal-entity-section">
+            <div className="legal-entity-fields">
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Наименование юр.лица</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.entityName)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'entityName')}
+                        placeholder="ООО Ромашка"
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">ФИО ИП / ФИО ген директора / CEO</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.directorFullName)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'directorFullName')}
+                        {...invalidFieldKeys.has('legalEntity-directorFullName') && { style: { border: "1px solid red" } }}
+                        placeholder="Иванов Иван Иванович"
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Юридический адрес</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.legalAddress)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'legalAddress')}
+                        placeholder="г. Москва, ул. Иванова, д.6, кв.15"
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Дата регистрации</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.registrationDate)}
+                        type="date"
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'registrationDate')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Регистрационный номер</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.registrationNumber)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'registrationNumber')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Наименование банка</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.bankName)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'bankName')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">БИК / SWIFT</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.bik)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'bik')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Номер счёта</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.accountNumber)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'accountNumber')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Наименование банка корреспондента</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.correspondentBankName)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'correspondentBankName')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">ИНН банка корреспондента</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.correspondentBankInn)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'correspondentBankInn')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">БИК / SWIFT банка корреспондента</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.correspondentBankBik)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'correspondentBankBik')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Рублёвый счёт</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.rublesAccount)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'rublesAccount')}
+                    />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", marginTop: "2vh", marginBottom: "3vh" }}>
+                    <label className="input shifted">Номер счёта банка корреспондента</label>
+                    <input
+                        disabled={!legalEntityEditable}
+                        className="field"
+                        value={String(foreignLegalEntity.correspondentAccount)}
+                        onChange={(event) => handleChangeForeignLegalEntity(event.target.value, 'correspondentAccount')}
+                    />
                 </div>
             </div>
         </div>
@@ -1040,7 +1218,8 @@ export default function UserProfile() {
         const legalEntityToSave = {
             self: selfEmployedLegalEntity,
             individual: individualEntrepreneurLegalEntity,
-            ooo: OOOLegalEntity
+            ooo: OOOLegalEntity,
+            foreign: foreignLegalEntity
         }[currentLegalEntityType]
 
         if (hasEmptyValues(legalEntityToSave)) {
@@ -1058,6 +1237,8 @@ export default function UserProfile() {
                 newUserData.individualEntrepreneurLegalEntity = legalEntityToSave as UserData['individualEntrepreneurLegalEntity']
             } else if (currentLegalEntityType === 'ooo') {
                 newUserData.oooLegalEntity = legalEntityToSave as UserData['oooLegalEntity']
+            } else if (currentLegalEntityType === 'foreign') {
+                newUserData.foreignLegalEntity = legalEntityToSave as UserData['foreignLegalEntity']
             }
             console.log(newUserData)
 
@@ -1239,11 +1420,12 @@ export default function UserProfile() {
                             defaultLabel={{
                                 'self': 'САМОЗАНЯТЫЙ',
                                 'individual': 'ИП',
-                                'ooo': 'ООО'
+                                'ooo': 'ООО',
+                                'foreign': 'Иностранное юр. лицо'
                             }[currentLegalEntityType]}
                             onChange={(val) => {
                                 flushLegalEntityInvalidKeys();
-                                setCurrentLegalEntityType(val as 'self' | 'individual' | 'ooo');
+                                setCurrentLegalEntityType(val as 'self' | 'individual' | 'ooo' | 'foreign');
                             }}
                             options={[
                                 {
@@ -1258,6 +1440,10 @@ export default function UserProfile() {
                                     value: 'ooo',
                                     label: 'ООО'
                                 },
+                                {
+                                    value: 'foreign',
+                                    label: 'Иностранное юр. лицо'
+                                }
 
                             ]}
                             disabled={!legalEntityEditable}
@@ -1277,7 +1463,7 @@ export default function UserProfile() {
 
                     <div className="docs-section" style={!legalEntityEditable ? { background: 'rgba(255, 255, 255, 0.28)', borderRadius: '30px' } : {}}>
 
-                        {{ self: selfEmployedLegalEntitySection, individual: individualEntrepreneurLegalEntitySection, ooo: OOOLegalEntitySection }[currentLegalEntityType]}
+                        {{ self: selfEmployedLegalEntitySection, individual: individualEntrepreneurLegalEntitySection, ooo: OOOLegalEntitySection, foreign: foreignLegalEntitySection }[currentLegalEntityType]}
 
                         {legalEntityEditable ? (
                             <div>

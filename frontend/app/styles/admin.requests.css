@@ -113,3 +113,11 @@ input.field.error {
     background-color: rgba(255, 0, 0, 0.13);
     color: rgba(0, 0, 0, 0.385)
 }
+
+.track-controls {
+    margin-top: 2vh;
+}
+
+.track-controls-first {
+    margin-top: 4.1vh;
+}

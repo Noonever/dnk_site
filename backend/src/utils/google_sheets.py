@@ -6,14 +6,14 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 creds_file_path = Path(__file__).parent.parent/'dnk-test-402011-6436087599f1.json'
 
-def write_rows_to_google_sheet(rows: list[list]):
+def write_rows_to_google_sheet(worksheet_name: str, rows: list[list]):
     
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_file_path, scope)
     
     client = gspread.authorize(creds)
 
-    sheet = client.open_by_key("1nSZgM3TksoKPJgv4b-V_VIxV-Tsfz8rUSilouzyIO1Y").worksheet("Test")
+    sheet = client.open_by_key("1nSZgM3TksoKPJgv4b-V_VIxV-Tsfz8rUSilouzyIO1Y").worksheet(worksheet_name)
 
     first_empty_row = len(sheet.col_values(1)) + 1
 

@@ -20,6 +20,8 @@ export default function ClipReleaseSection(
 
     const navigate = useNavigate()
 
+    const [cloudLink, setCloudLink] = useState(request.cloudLink);
+
     const [releaseDate, setReleaseDate] = useState(request.date);
     const [releaseImprint, setReleaseImprint] = useState(request.imprint);
 
@@ -27,10 +29,9 @@ export default function ClipReleaseSection(
     const [releaseTitle, setReleaseTitle] = useState(data.title);
     const [releaseVersion, setReleaseVersion] = useState(data.version);
     const [releaseGenre, setReleaseGenre] = useState(data.genre);
-    const [releaseCoverFile, setReleaseCoverFile] = useState<File | undefined>(undefined);
-    const [releaseLink, setReleaseLink] = useState(data.releaseLink)
 
     const [clipForms, setClipForms] = useState<{
+        explicit: boolean,
         performersNames: string,
         musicAuthorsNames: string,
         lyricistsNames: string,
@@ -38,6 +39,7 @@ export default function ClipReleaseSection(
         directorsNames: string,
     }[]>([
         {
+            explicit: data.explicit,
             performersNames: data.performersNames,
             musicAuthorsNames: data.musicAuthorsNames,
             lyricistsNames: data.lyricistsNames,
@@ -48,6 +50,12 @@ export default function ClipReleaseSection(
 
     const [invalidFieldKeys, setInvalidFieldKeys] = useState<Set<string>>(new Set());
     const [modalIsOpened, setModalIsOpened] = useState(false);
+
+    const handleChangeClipIsExplicit = (value: boolean) => {
+        const newTrackForms = [...clipForms]
+        newTrackForms[0].explicit = value
+        setClipForms(newTrackForms)
+    }
 
     // release fields
     const handleChangeReleasePerformers = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,7 +84,6 @@ export default function ClipReleaseSection(
     const handleChangeReleaseTitle = (event: React.ChangeEvent<HTMLInputElement>) => {
         // no validation
         const releaseTitle = event.target.value
-
         setReleaseTitle(releaseTitle);
     }
 
@@ -91,32 +98,19 @@ export default function ClipReleaseSection(
         setReleaseGenre(event.target.value);
     }
 
-    const handleChangeReleaseCoverFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // validated
-        //@ts-ignore
-        const file = event.target.files[0];
-
-        if (file.type === "image/jpeg" || file.type === "image/png") {
-            setReleaseCoverFile(file);
-        } else {
-            alert("Неверный формат файла");
-            setReleaseCoverFile(undefined);
-        }
-    }
-
-    const handleChangeReleaseLink = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChangeCloudLink = (event: React.ChangeEvent<HTMLInputElement>) => {
         // validated
         const releaseLink = event.target.value
         const newInvalidFieldKeys = new Set(invalidFieldKeys)
 
         if (!linkRePattern.test(releaseLink) && releaseLink !== '') {
-            newInvalidFieldKeys.add(`release-link`)
+            newInvalidFieldKeys.add(`cloudLink`)
         } else {
-            newInvalidFieldKeys.delete(`release-link`)
+            newInvalidFieldKeys.delete(`cloudLink`)
         }
 
         setInvalidFieldKeys(newInvalidFieldKeys)
-        setReleaseLink(releaseLink);
+        setCloudLink(releaseLink);
     }
 
     const handleChangeClipPerformersNames = (event: React.ChangeEvent<HTMLInputElement>, trackId: number) => {
@@ -229,36 +223,27 @@ export default function ClipReleaseSection(
             err_notificate()
             return
         }
-        if (releaseCoverFile === undefined && data.coverFileId === "") {
-            err_notificate()
-            return
-        }
 
         const clip = clipForms[0]
 
-        let coverFileId = data.coverFileId
-
-        if (releaseCoverFile !== undefined) {
-            coverFileId = await uploadFile(releaseCoverFile)
-        }
 
         const clipRelease: ClipReleaseUpload = {
+            explicit: clip.explicit,
             title: releaseTitle,
             performers: releasePerformers,
             version: releaseVersion,
             genre: releaseGenre,
-            releaseLink: releaseLink,
             performersNames: clip.performersNames,
             musicAuthorsNames: clip.musicAuthorsNames,
             lyricistsNames: clip.lyricistsNames,
             phonogramProducersNames: clip.phonogramProducersNames,
             directorsNames: clip.directorsNames,
-            coverFileId: coverFileId,
         }
 
         try {
             const updatingReleaseRequest: ReleaseRequestUpdate = {
                 date: releaseDate,
+                cloudLink: cloudLink,
                 imprint: releaseImprint,
                 data: clipRelease,
             }
@@ -327,7 +312,7 @@ export default function ClipReleaseSection(
                     <label className="input shifted">ВЕРСИЯ</label>
                     <div className="row-field-input-container">
                         <input
-                            value={releaseVersion? releaseVersion : ""}
+                            value={releaseVersion ? releaseVersion : ""}
                             onChange={handleChangeReleaseVersion}
                             placeholder="Remix"
                             className="field release"
@@ -381,29 +366,14 @@ export default function ClipReleaseSection(
                     </select>
                 </div>
 
-                {/* release cover */}
-                <div className="release-cover-selector">
-                    <input accept="image/*" onChange={handleChangeReleaseCoverFile} type="file" className="full-cover" />
-                    <label className="input cover">ОБЛОЖКА*</label>
-                    {(!releaseCoverFile && data.coverFileId === '') ? (
-                        <svg width="28" height="26" viewBox="0 0 28 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.6 18.6563C2.03222 17.58 1 15.7469 1 13.6667C1 10.5419 3.32896 7.97506 6.30366 7.69249C6.91216 3.89618 10.1263 1 14 1C17.8737 1 21.0878 3.89618 21.6963 7.69249C24.671 7.97506 27 10.5419 27 13.6667C27 15.7469 25.9678 17.58 24.4 18.6563M8.8 18.3333L14 13M14 13L19.2 18.3333M14 13V25" stroke="black" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    ) : (
-                        <svg width="28" height="26" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 10L10 12L14.5 7.5M10.9932 4.13581C8.9938 1.7984 5.65975 1.16964 3.15469 3.31001C0.649644 5.45038 0.296968 9.02898 2.2642 11.5604C3.75009 13.4724 7.97129 17.311 9.94801 19.0749C10.3114 19.3991 10.4931 19.5613 10.7058 19.6251C10.8905 19.6805 11.0958 19.6805 11.2805 19.6251C11.4932 19.5613 11.6749 19.3991 12.0383 19.0749C14.015 17.311 18.2362 13.4724 19.7221 11.5604C21.6893 9.02898 21.3797 5.42787 18.8316 3.31001C16.2835 1.19216 12.9925 1.7984 10.9932 4.13581Z" stroke="black" strokeOpacity="1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    )}
-                </div>
-
-                {/* release link */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label className="input shifted">ССЫЛКА НА КЛИП*</label>
+                <div className="right-track-field" style={{ width: "20vw" }}>
+                    <label className="input shifted">ИСХОДНИКИ*<span className="star" style={{ color: 'white' }}>*</span></label>
                     <input
-                        value={releaseLink}
-                        onChange={(e) => handleChangeReleaseLink(e)}
-                        {...invalidFieldKeys.has(`release-link`) ? { style: { border: "1px solid red" } } : null}
-                        className="back-catalog"
+                        value={cloudLink}
+                        onChange={(e) => handleChangeCloudLink(e)}
+                        className="track-field"
+                        {...invalidFieldKeys.has(`cloudLink`) ? { style: { border: "1px solid red" } } : null}
+                        placeholder="https://www.example.com"
                         type="text"
                     />
                 </div>
@@ -415,6 +385,16 @@ export default function ClipReleaseSection(
                     <div key={index} style={{ width: '100%' }}>
                         <div className="clip-form">
                             <div className="right-track-fields">
+
+                                <center>
+                                    <div>
+                                        <label className="input downgap">В КЛИПЕ ЕСТЬ МАТ? <span className="star" style={{ color: 'white' }}>*</span></label>
+                                        <div className="responsive-selector-field">
+                                            <span onClick={() => handleChangeClipIsExplicit(true)} className={"responsive-selector" + (trackForm.explicit ? " active" : '')} id="0">ДА /</span>
+                                            <span onClick={() => handleChangeClipIsExplicit(false)} className={"responsive-selector" + (!trackForm.explicit ? " active" : '')} id="0"> НЕТ</span>
+                                        </div>
+                                    </div>
+                                </center>
 
                                 {/* track performers names */}
                                 <div className="right-track-field">
@@ -486,7 +466,6 @@ export default function ClipReleaseSection(
                     </div>
                 )
             })}
-
 
             <div className="submit-container">
 

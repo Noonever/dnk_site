@@ -34,6 +34,7 @@ async def update(username: str, data: UserData):
         new_user_data['self_employed_legal_entity'],
         new_user_data['individual_entrepreneur_legal_entity'],
         new_user_data['ooo_legal_entity'],
+        new_user_data['foreign_legal_entity'],
     ]
 
     for passport in user_passports:

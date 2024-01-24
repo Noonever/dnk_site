@@ -28,7 +28,7 @@ export interface NewMusicReleaseUpload {
     coverFileId: string | null;
 }
 
-export interface BackCatalogReleaseFileUpload {
+export interface BackCatalogReleaseUpload {
     performers: string;
     title: string;
     version: string | null;
@@ -50,8 +50,6 @@ export interface ClipReleaseUpload {
     lyricistsNames: string;
     phonogramProducersNames: string;
     directorsNames: string;
-    coverFileId: string | null;
-    videoFileId: string | null;
 }
 
 export interface ReleaseRequest {
@@ -62,14 +60,15 @@ export interface ReleaseRequest {
     inDeliverySheet: boolean;
     inDocsSheet: boolean;
     type: "new-music" | "back-catalog" | "clip";
-    source: string;
+    cloudLink: string;
     status: 'pending' | 'accepted' | 'error';
-    data: NewMusicReleaseUpload | BackCatalogReleaseFileUpload | ClipReleaseUpload;
+    data: NewMusicReleaseUpload | BackCatalogReleaseUpload | ClipReleaseUpload;
     authors: Author[];
 }
 
 export interface ReleaseRequestUpdate {
     date: string;
     imprint: string;
-    data: NewMusicReleaseUpload | BackCatalogReleaseFileUpload | ClipReleaseUpload;
+    cloudLink: string;
+    data: NewMusicReleaseUpload | BackCatalogReleaseUpload | ClipReleaseUpload;
 }

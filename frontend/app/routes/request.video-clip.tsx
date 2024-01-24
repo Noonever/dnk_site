@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLoaderData } from "@remix-run/react";
 import type { LinksFunction, MetaFunction, LoaderArgs } from "@remix-run/node";
 
-import { uploadFile } from "~/backend/file";
+// import { uploadFile } from "~/backend/file";
 import { uploadClipReleaseRequest } from "~/backend/release";
 import type { ClipReleaseUpload } from "~/types/release";
 import type { AuthorForm, AuthorDocs, Author } from "~/types/author";
@@ -23,13 +23,13 @@ import {
 import { fullNamesRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
 
 import CustomSelect from "~/components/select";
-import { User } from "~/types/user";
+import type { User } from "~/types/user";
 import { getUserByUsername } from "~/backend/user";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
-const kzPassportNumberRePattern = /^[A-Za-z]\d{8}$/
-const byPassportNumberRePattern = /^[A-Za-z]{2}\d{7}$/
+const kzPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]\d{8}$/
+const byPassportNumberRePattern = /^[A-Za-zА-Яа-яёЁ]{2}\d{7}$/
 
 const ruPassportNumberRePattern = /^\d{4} \d{6}$/
 const ruCodeRePattern = /^\d{3}-\d{3}$/
@@ -59,9 +59,12 @@ export async function loader({ request }: LoaderArgs): Promise<{ username: strin
 
 export default function SingleReleaseRequest() {
     const data = useLoaderData<typeof loader>();
-    const { username, user } = data;
 
-    const cloudUpload: boolean = user.linkUpload
+    //@ts-ignore
+    const { username } = data;
+
+    // const cloudUpload: boolean = user.linkUpload
+    const cloudUpload: boolean = true
 
     const [releasePerformers, setReleasePerformers] = useState("");
     const [releaseTitle, setReleaseTitle] = useState("");
@@ -324,39 +327,58 @@ export default function SingleReleaseRequest() {
         setAuthors([])
     }
 
-    const err_notificate = () => {
-        alert('Заполните все обязательные поля')
+    const err_notificate = (message?: string) => {
+        alert(message || 'Заполните все обязательные поля')
     }
 
     const handleSubmit = async () => {
 
+        // Check if all fields are filled correctly
         if (invalidFieldKeys.size) {
             alert("Некоторые поля заполнены некорректно")
             return
         }
 
+        // Check if release main data is filled
         if (releasePerformers === "") {
-            err_notificate()
+            err_notificate("Заполните исполнителей релиза")
             return
         }
         if (releaseTitle === "") {
-            err_notificate()
+            err_notificate("Заполните название релиза")
             return
         }
-        if (releaseCoverFile === undefined) {
-            err_notificate()
-            return
-        }
-
-        if (releaseVideoFile === undefined) {
-            err_notificate()
+        if (cloudLink === "") {
+            err_notificate("Добавьте ссылку на исходники")
             return
         }
 
+        // check if clip data is filled
+        const clip = clipForms[0]
+
+        if (clip.performersNames === "") {
+            err_notificate("Заполните ФИО исполнителей клипа")
+            return
+        }
+        if (clip.musicAuthorsNames === "") {
+            err_notificate("Заполните ФИО авторов клипа")
+            return
+        }
+        if (clip.phonogramProducersNames === "") {
+            err_notificate("Заполните ФИО изготовителей фонограммы")
+            return
+        }
+        if (clip.directorsNames === "") {
+            err_notificate("Заполните ФИО режиссеров")
+            return
+        }
+
+        // Setting up authors
         const authorsToSend: Author[] = []
+        const authorsFiles: Record<number, File> = {}
 
         if (authorIsSolo !== true) {
-            for (let author of authors) {
+            for (let [index, author] of authors.entries()) {
 
                 let authorToSend: Author | null = null
 
@@ -366,17 +388,15 @@ export default function SingleReleaseRequest() {
                         data: author.docs,
                     }
                 } else if (author.docs === null && author.file !== null) {
-                    const authorFileId = await uploadFile(author.file)
                     authorToSend = {
                         fullName: author.fullName,
-                        data: authorFileId,
+                        data: undefined,
                     }
+                    authorsFiles[index] = author.file
                 } else {
-                    alert('Заполните документы добавленных авторов')
-                    console.log(authors)
+                    err_notificate(`Заполните документы автора ${author.fullName}`)
                     return
                 }
-
                 authorsToSend.push(authorToSend)
             }
         }
@@ -384,11 +404,6 @@ export default function SingleReleaseRequest() {
         try {
 
             setModalIsOpened(true)
-
-            const clip = clipForms[0]
-
-            const coverFileId = await uploadFile(releaseCoverFile)
-            const videoFileId = await uploadFile(releaseVideoFile)
 
             const clipRelease: ClipReleaseUpload = {
                 title: releaseTitle,
@@ -400,22 +415,21 @@ export default function SingleReleaseRequest() {
                 musicAuthorsNames: clip.musicAuthorsNames,
                 lyricistsNames: clip.lyricistsNames,
                 phonogramProducersNames: clip.phonogramProducersNames,
-                directorsNames: clip.directorsNames,
-                coverFileId: coverFileId,
-                videoFileId: videoFileId,
+                directorsNames: clip.directorsNames
             }
 
             const response = await uploadClipReleaseRequest(
                 username,
                 clipRelease,
-                authorsToSend
+                authorsToSend,
+                cloudLink
             )
             if (response === 200) {
                 setModalIsOpened(false)
                 setSuccessModalIsOpened(true)
                 setTimeout(() => {
                     setSuccessModalIsOpened(false)
-                }, 3000)
+                }, 2000)
                 flushForm()
             }
         } catch (error) {
@@ -1018,7 +1032,7 @@ export default function SingleReleaseRequest() {
                             <label className="input shifted">Дата окончания</label>
                             <input
                                 className="field"
-                                value={foreignPassport.issueDate}
+                                value={foreignPassport.endDate}
                                 onChange={(event) => handleChangeCurrentPassport('endDate', event.target.value)}
                                 type={"date"}
                             />

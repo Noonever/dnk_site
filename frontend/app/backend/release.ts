@@ -1,6 +1,6 @@
 import fastAPI from "./fastapi";
 import type { Author } from "~/types/author";
-import type { NewMusicReleaseUpload, ClipReleaseUpload, BackCatalogReleaseFileUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
+import type { NewMusicReleaseUpload, ClipReleaseUpload, BackCatalogReleaseUpload, ReleaseRequest, ReleaseRequestUpdate } from "~/types/release";
 
 
 export async function uploadNewMusicReleaseRequest(
@@ -51,16 +51,16 @@ export async function uploadClipReleaseRequest(
 
 export async function uploadBackCatalogReleaseRequest(
     username: string,
-    releaseData: BackCatalogReleaseFileUpload,
+    releaseData: BackCatalogReleaseUpload,
     authors: Author[],
-    cloudLink: string | undefined,
+    cloudLink: string,
 ) {
     const release = {
         username: username,
         type: 'back-catalog',
         data: releaseData,
         authors: authors,
-        cloudLink: cloudLink? cloudLink : null
+        cloudLink: cloudLink
     }
         
     try {
@@ -95,6 +95,7 @@ export async function getReleaseRequest(id: string): Promise<ReleaseRequest | nu
 
 export async function updateReleaseRequest(id: string, data: ReleaseRequestUpdate): Promise<ReleaseRequest | null> {
     try {
+        console.log("from updater data", data)
         const response = await fastAPI.put(`/release/request/`, data, { params: { id } })
         return response.data
     } catch (error) {
@@ -110,6 +111,17 @@ export async function addReleaseRequestToDeliveryTable(id: string): Promise<numb
     } catch (error) {
         console.error('Release delivery add error:', error);
         return null
+    }
+}
+
+export async function addReleaseRequestToDocsTable(id: string) {
+    try {
+        const response = await fastAPI.post(`/release/add-to-docs/`, {timeout: 100000}, { params: {id} })
+        return 200
+    } catch (error: any) {
+        return {
+            error: error.response.data.detail
+        }
     }
 }
 

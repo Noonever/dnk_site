@@ -241,11 +241,11 @@ export default function Users() {
                             </div>
 
                             <div className="controls-container" style={index === 0 ? { marginTop: "calc(20px + 1.3vh)" } : {marginTop: "1vh"}}>
-                                <svg onClick={() => handleChangeLinkUploadPermission(user.username)} className={"track-controls"} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg onClick={() => handleChangeLinkUploadPermission(user.username)} className={"user-controls"} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M7.5 7H7C4.23858 7 2 9.23858 2 12C2 14.7614 4.23858 17 7 17H9C11.7614 17 14 14.7614 14 12M16.5 17H17C19.7614 17 22 14.7614 22 12C22 9.23858 19.7614 7 17 7H15C12.2386 7 10 9.23858 10 12" stroke={user.linkUpload ? "black" : "gray"} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
 
-                                <svg onClick={() => setChangePasswordUsername(user.username)} className={"track-controls"} fill="#000000" height="30px" width="30px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns: xlink="http://www.w3.org/1999/xlink"
+                                <svg onClick={() => setChangePasswordUsername(user.username)} className={"user-controls"} fill="#000000" height="30px" width="30px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns: xlink="http://www.w3.org/1999/xlink"
                                     viewBox="0 0 485.017 485.017" xml: space="preserve">
                                     <g>
                                         <path d="M361.205,68.899c-14.663,0-28.447,5.71-38.816,16.078c-21.402,21.403-21.402,56.228,0,77.631
@@ -263,7 +263,7 @@ export default function Users() {
                                     </g>
                                 </svg>
 
-                                <svg onClick={() => handleDeleteUser(user.username)} className={"track-controls"} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg onClick={() => handleDeleteUser(user.username)} className={"user-controls"} style={{ marginLeft: '1vw', marginRight: '1vw', cursor: 'pointer' }} width="30" height="30" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M7 1H13M1 4H19M17 4L16.2987 14.5193C16.1935 16.0975 16.1409 16.8867 15.8 17.485C15.4999 18.0118 15.0472 18.4353 14.5017 18.6997C13.882 19 13.0911 19 11.5093 19H8.49065C6.90891 19 6.11803 19 5.49834 18.6997C4.95276 18.4353 4.50009 18.0118 4.19998 17.485C3.85911 16.8867 3.8065 16.0975 3.70129 14.5193L3 4M8 8.5V13.5M12 8.5V13.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                             </div>
