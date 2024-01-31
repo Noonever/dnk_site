@@ -424,7 +424,7 @@ async def add_to_docs(id: str):
                 data_row[123] = track.get('phonogram_producers_names')
                 data_row[124] = track.get('performers_names')
                 data_row[125] = get_wav_duration(track.get('wav_file_id'))
-                data_row[126] = request_data.get('cover_file_id')
+                data_row[126] = cover_file_public_link
                 data_row[127] = release_date
 
         else:
