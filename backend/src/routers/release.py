@@ -151,22 +151,19 @@ async def add_to_delivery(id: str):
             track_version_alias = f" ({track.get('version')})" if track.get('version') else ""
             track_title = f"{index+1:02}. {track.get('performers')} - {track.get('title')}{track_version_alias}"
 
-            # cloud upload
+            # ! cloud upload
             if release_cloud_link == '' or release_cloud_link is None:
                 wav_file_id = track.get('wav_file_id')
                 wav_file_public_path =  f"{yadisk_media_dirs['wav']}/{track_title}.wav"
                 wav_file_local_path = download_dir/f'{wav_file_id}.wav'
                 yadisk.upload_file(wav_file_local_path, wav_file_public_path)
-                if wav_file_local_path:
-                    wav_file_local_path.unlink(missing_ok=True)
+                
                 processed_track['wavLink'] = yadisk.publish(wav_file_public_path)
                 del processed_track['wav_file_id']
 
                 mp3_file_public_path = f"{yadisk_media_dirs['mp3']}/{track_title}.mp3"
                 mp3_file_local_path = convert_wav_to_mp3(wav_file_id)
                 yadisk.upload_file(mp3_file_local_path, mp3_file_public_path)
-                if mp3_file_local_path:
-                    mp3_file_local_path.unlink(missing_ok=True)
 
                 text_file_id = track.get('text_file_id')
                 del processed_track['text_file_id']
@@ -186,16 +183,20 @@ async def add_to_delivery(id: str):
                 else:
                     wav_public_link = yadisk.publish(wav_file_public_path)
                     mp3_public_link = yadisk.publish(mp3_file_public_path)
-            
+                
             splitted_date = request.get('date').split('-')
             actual_date = f'{splitted_date[2]}.{splitted_date[1]}.{splitted_date[0]}'
 
-            # cloud upload
+            # ! cloud upload
             if release_cloud_link == '' or release_cloud_link is None:
                 data_row[7] = get_wav_duration(wav_file_id)
                 data_row[19] = wav_public_link
                 data_row[20] = cover_public_link
                 data_row[21] = mp3_public_link
+                if wav_file_local_path:
+                    wav_file_local_path.unlink(missing_ok=True)
+                if mp3_file_local_path:
+                    mp3_file_local_path.unlink(missing_ok=True)
 
             data_row[0] = release_performers
             data_row[1] = track.get('performers')
