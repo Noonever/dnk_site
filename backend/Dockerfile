@@ -1,11 +1,11 @@
 FROM python:3.11-slim
 
-RUN apt update && apt upgrade
+RUN apt update && apt upgrade -y
 
 WORKDIR /src
-
 COPY . /src
 
+RUN apt install -y ffmpeg
 RUN pip install -r requirements.txt
 
 EXPOSE 8000
