@@ -111,8 +111,8 @@ async def add_to_delivery(id: str):
         # cloud upload
         if release_cloud_link == '' or release_cloud_link is None:
 
-            version_string = f' - {release_version}' if release_version else ''
-            source_folder_public_name = f'{user_nickname} - {release_performers} - {release_title}{version_string}'
+            version_string = f' ({release_version})' if release_version else ''
+            source_folder_public_name = f'{release_performers} - {release_title}{version_string}'
             
             artist_path = f'requests-media/{user_nickname}'
             source_path = f'{artist_path}/{source_folder_public_name}'
@@ -121,8 +121,8 @@ async def add_to_delivery(id: str):
             source_public_link = yadisk.publish(source_path)
 
             cover_file_id = request_data['cover_file_id']
-            yadisk.upload_file(download_dir / f'{cover_file_id}.jpg', f'{source_path}/{username} {release_title}.jpg')
-            cover_public_link = yadisk.publish(f'{source_path}/{username} {release_title}.jpg')
+            yadisk.upload_file(download_dir / f'{cover_file_id}.jpg', f'{source_path}/{release_performers} - {release_title}.jpg')
+            cover_public_link = yadisk.publish(f'{source_path}/{release_performers} - {release_title}.jpg')
 
             if release_name_type != 'Single':
                 yadisk_media_dirs = {
