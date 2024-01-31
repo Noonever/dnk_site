@@ -463,11 +463,13 @@ export default function SingleReleaseRequest() {
                 for (let [index, trackTextFile] of Object.entries(tracksTextFiles)) {
                     tracks[Number(index)].textFileId = await uploadFile(trackTextFile)
                 }
-                for (let [index, authorFile] of Object.entries(authorsFiles)) {
-                    authorsToSend[Number(index)].data = await uploadFile(authorFile)
-                }
                 // Uploading cover
                 coverFileId = await uploadFile(releaseCoverFile as File)
+            }
+            
+            // Uploading authors files
+            for (let [index, authorFile] of Object.entries(authorsFiles)) {
+                authorsToSend[Number(index)].data = await uploadFile(authorFile)
             }
 
             // Setting up release

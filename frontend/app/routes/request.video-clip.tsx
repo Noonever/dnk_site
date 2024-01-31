@@ -25,6 +25,7 @@ import { fullNamesRePattern, multipleNicknamesRePattern } from "~/utils/regexp";
 import CustomSelect from "~/components/select";
 import type { User } from "~/types/user";
 import { getUserByUsername } from "~/backend/user";
+import { uploadFile } from "~/backend/file";
 
 const fullNameRePattern = fullNamesRePattern
 const tenDigitsRePattern = /^\d{10}$/
@@ -404,6 +405,11 @@ export default function SingleReleaseRequest() {
         try {
 
             setModalIsOpened(true)
+
+            // Uploading authors files
+            for (let [index, authorFile] of Object.entries(authorsFiles)) {
+                authorsToSend[Number(index)].data = await uploadFile(authorFile)
+            }
 
             const clipRelease: ClipReleaseUpload = {
                 title: releaseTitle,
