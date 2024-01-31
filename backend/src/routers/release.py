@@ -121,10 +121,10 @@ async def add_to_delivery(id: str):
             source_public_link = yadisk.publish(source_path)
 
             cover_file_id = request_data['cover_file_id']
-            yadisk.upload_file(download_dir / f'{cover_file_id}.jpg', f'{source_path}/cover.jpg')
-            cover_public_link = yadisk.publish(f'{source_path}/cover.jpg')
+            yadisk.upload_file(download_dir / f'{cover_file_id}.jpg', f'{source_path}/{username} {release_title}.jpg')
+            cover_public_link = yadisk.publish(f'{source_path}/{username} {release_title}.jpg')
 
-            if release_type != 'Single':
+            if release_name_type != 'Single':
                 yadisk_media_dirs = {
                     "wav": f'{source_path}/wav',
                     "mp3": f'{source_path}/mp3',
@@ -225,7 +225,7 @@ async def add_to_delivery(id: str):
         processed_request = request
         processed_request['data']['tracks'] = processed_tracks
 
-        # cloud upload
+        # ! cloud upload
         if release_cloud_link == '' or release_cloud_link is None:
             processed_request['data']['coverLink'] = cover_public_link
             del processed_request['data']['cover_file_id']
