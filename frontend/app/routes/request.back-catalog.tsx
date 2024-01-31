@@ -355,7 +355,7 @@ export default function AlbumReleaseRequest() {
         const file = event.target.files[0];
         const newTrackForms = [...trackForms];
 
-        if (file.type !== "audio/wav") {
+        if (file.type !== "audio/wav" && file.type !== "audio/x-wav") {
             newTrackForms[trackId].wavFile = undefined
             alert("Неверный формат файла");
         } else {
@@ -1701,7 +1701,7 @@ export default function AlbumReleaseRequest() {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                Обложка в формате jpeg 3000x3000.
+                                UPC релиза.
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -1722,7 +1722,7 @@ export default function AlbumReleaseRequest() {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                Обложка в формате jpeg 3000x3000.
+                                Дата выпуска релиза.
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -2124,7 +2124,7 @@ export default function AlbumReleaseRequest() {
                                         />
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        Скопировать поля с ФИО из этого трека в остальные
+                                        ISRC трека
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>

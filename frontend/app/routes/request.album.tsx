@@ -343,7 +343,7 @@ export default function AlbumReleaseRequest() {
         const file = event.target.files[0];
         const newTrackForms = [...trackForms];
 
-        if (file.type !== "audio/wav") {
+        if (file.type !== "audio/wav" && file.type !== "audio/x-wav") {
             console.error('Неверный формат файла: ' + file.type)
             newTrackForms[trackId].wavFile = undefined
             alert("Неверный формат файла");
