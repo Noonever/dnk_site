@@ -270,50 +270,54 @@ async def add_to_docs(id: str):
     release_performers = request_data.get('performers')
 
     release_author = request.get('user_data')
-    author_passport_type = release_author.get('current_passport')
-    author_legal_entity_type = release_author.get('current_legal_entity')
+    release_author_passport_type = release_author.get('current_passport')
+    release_author_legal_entity_type = release_author.get('current_legal_entity')
 
-    match author_passport_type:
+    match release_author_passport_type:
         case 'ru':
-            author_passport = release_author.get('ru_passport').get('data')
-            data_row[82] = author_passport.get('full_name')
-            data_row[83] = author_passport.get('birth_date')
-            data_row[84] = author_passport.get('number')
-            data_row[85] = author_passport.get('issued_by')
-            data_row[86] = author_passport.get('issue_date')
-            data_row[87] = author_passport.get('code')
-            data_row[88] = author_passport.get('registration_address')
-            data_row[89] = author_passport.get('snils')
+            release_author_passport = release_author.get('ru_passport').get('data')
+            release_author_full_name = release_author_passport.get('full_name')
+            data_row[82] = release_author_passport.get('full_name')
+            data_row[83] = release_author_passport.get('birth_date')
+            data_row[84] = release_author_passport.get('number')
+            data_row[85] = release_author_passport.get('issued_by')
+            data_row[86] = release_author_passport.get('issue_date')
+            data_row[87] = release_author_passport.get('code')
+            data_row[88] = release_author_passport.get('registration_address')
+            data_row[89] = release_author_passport.get('snils')
 
         case 'kz':
-            author_passport = release_author.get('kz_passport').get('data')
-            data_row[92] = author_passport.get('full_name')
-            data_row[93] = author_passport.get('birth_date')
-            data_row[94] = author_passport.get('number')
-            data_row[95] = author_passport.get('number_id')
-            data_row[96] = author_passport.get('issued_by')
-            data_row[97] = author_passport.get('issue_date')
-            data_row[98] = author_passport.get('end_date')
-            data_row[99] = author_passport.get('registration_address')
+            release_author_passport = release_author.get('kz_passport').get('data')
+            release_author_full_name = release_author_passport.get('full_name')
+            data_row[92] = release_author_full_name
+            data_row[93] = release_author_passport.get('birth_date')
+            data_row[94] = release_author_passport.get('number')
+            data_row[95] = release_author_passport.get('number_id')
+            data_row[96] = release_author_passport.get('issued_by')
+            data_row[97] = release_author_passport.get('issue_date')
+            data_row[98] = release_author_passport.get('end_date')
+            data_row[99] = release_author_passport.get('registration_address')
 
         case 'by':
-            author_passport = release_author.get('by_passport').get('data')
-            data_row[102] = author_passport.get('full_name')
-            data_row[103] = author_passport.get('birth_date')
-            data_row[104] = author_passport.get('number')
-            data_row[105] = author_passport.get('issued_by')
-            data_row[106] = author_passport.get('issue_date')
-            data_row[107] = author_passport.get('registration_address')
+            release_author_passport = release_author.get('by_passport').get('data')
+            release_author_full_name = release_author_passport.get('full_name')
+            data_row[102] = release_author_full_name
+            data_row[103] = release_author_passport.get('birth_date')
+            data_row[104] = release_author_passport.get('number')
+            data_row[105] = release_author_passport.get('issued_by')
+            data_row[106] = release_author_passport.get('issue_date')
+            data_row[107] = release_author_passport.get('registration_address')
 
         case 'foreign':
-            author_passport = release_author.get('foreign_passport').get('data')
-            data_row[110] = author_passport.get('full_name')
-            data_row[111] = author_passport.get('birth_date')
-            data_row[112] = author_passport.get('number')
-            data_row[113] = author_passport.get('number_id')
-            data_row[114] = author_passport.get('issued_by')
-            data_row[115] = author_passport.get('issue_date')
-            data_row[116] = author_passport.get('registration_address')
+            release_author_passport = release_author.get('foreign_passport').get('data')
+            release_author_full_name = release_author_passport.get('full_name')
+            data_row[110] = release_author_full_name
+            data_row[111] = release_author_passport.get('birth_date')
+            data_row[112] = release_author_passport.get('number')
+            data_row[113] = release_author_passport.get('number_id')
+            data_row[114] = release_author_passport.get('issued_by')
+            data_row[115] = release_author_passport.get('issue_date')
+            data_row[116] = release_author_passport.get('registration_address')
 
     edo_dict = {
         "sbis": 'Да, в СБИС',
@@ -322,51 +326,51 @@ async def add_to_docs(id: str):
         "no": "Нет"
     }
 
-    match author_legal_entity_type:
+    match release_author_legal_entity_type:
         case 'self':
             data_row[6] = 'Самозанятый'
-            author_legal_entity = release_author.get('self_employed_legal_entity')
-            data_row[17] = author_legal_entity.get('bank_name')
-            data_row[18] = author_legal_entity.get('checking_account')
-            data_row[19] = author_legal_entity.get('bik')
+            release_author_legal_entity = release_author.get('self_employed_legal_entity')
+            data_row[17] = release_author_legal_entity.get('bank_name')
+            data_row[18] = release_author_legal_entity.get('checking_account')
+            data_row[19] = release_author_legal_entity.get('bik')
             data_row[20] = ""
-            data_row[21] = author_legal_entity.get('correspondent_account')
-            data_row[22] = author_legal_entity.get('inn')
+            data_row[21] = release_author_legal_entity.get('correspondent_account')
+            data_row[22] = release_author_legal_entity.get('inn')
 
         case 'individual':
             data_row[6] = 'ИП РФ'
-            author_legal_entity = release_author.get('individual_entrepreneur_legal_entity')
-            data_row[26] = author_legal_entity.get('full_name')
-            data_row[27] = author_legal_entity.get('ogrnip')
-            data_row[28] = author_legal_entity.get('registration_address')
-            data_row[29] = author_legal_entity.get('inn')
-            data_row[30] = author_legal_entity.get('bank_name')
-            data_row[31] = author_legal_entity.get('checking_account')
-            data_row[32] = author_legal_entity.get('bik')
+            release_author_legal_entity = release_author.get('individual_entrepreneur_legal_entity')
+            data_row[26] = release_author_legal_entity.get('full_name')
+            data_row[27] = release_author_legal_entity.get('ogrnip')
+            data_row[28] = release_author_legal_entity.get('registration_address')
+            data_row[29] = release_author_legal_entity.get('inn')
+            data_row[30] = release_author_legal_entity.get('bank_name')
+            data_row[31] = release_author_legal_entity.get('checking_account')
+            data_row[32] = release_author_legal_entity.get('bik')
             data_row[33] = ""
-            data_row[34] = author_legal_entity.get('correspondent_account')
-            data_row[35] = edo_dict[author_legal_entity.get('edo_availability')]
+            data_row[34] = release_author_legal_entity.get('correspondent_account')
+            data_row[35] = edo_dict[release_author_legal_entity.get('edo_availability')]
 
         case 'ooo':
             data_row[6] = 'ООО РФ'
-            author_legal_entity = release_author.get('ooo_legal_entity')
-            data_row[37] = author_legal_entity.get('entity_name')
-            data_row[38] = author_legal_entity.get('director_full_name')
-            data_row[39] = author_legal_entity.get('ogrn')
-            data_row[40] = author_legal_entity.get('inn')
-            data_row[41] = author_legal_entity.get('kpp')
-            data_row[42] = author_legal_entity.get('legal_address')
-            data_row[43] = author_legal_entity.get('actual_address')
-            data_row[44] = author_legal_entity.get('bank_name')
-            data_row[45] = author_legal_entity.get('checking_account')
-            data_row[46] = author_legal_entity.get('bik')
+            release_author_legal_entity = release_author.get('ooo_legal_entity')
+            data_row[37] = release_author_legal_entity.get('entity_name')
+            data_row[38] = release_author_legal_entity.get('director_full_name')
+            data_row[39] = release_author_legal_entity.get('ogrn')
+            data_row[40] = release_author_legal_entity.get('inn')
+            data_row[41] = release_author_legal_entity.get('kpp')
+            data_row[42] = release_author_legal_entity.get('legal_address')
+            data_row[43] = release_author_legal_entity.get('actual_address')
+            data_row[44] = release_author_legal_entity.get('bank_name')
+            data_row[45] = release_author_legal_entity.get('checking_account')
+            data_row[46] = release_author_legal_entity.get('bik')
             data_row[47] = ""
-            data_row[48] = author_legal_entity.get('correspondent_account')
-            data_row[49] = edo_dict[author_legal_entity.get('edo_availability')]
+            data_row[48] = release_author_legal_entity.get('correspondent_account')
+            data_row[49] = edo_dict[release_author_legal_entity.get('edo_availability')]
 
         case 'foreign':
             data_row[6] = 'Иностранное юр. лицо'
-            author_legal_entity = release_author.get('foreign_legal_entity')
+            release_author_legal_entity = release_author.get('foreign_legal_entity')
             # TODO
     
     authors_full_names = {
@@ -477,6 +481,24 @@ async def add_to_docs(id: str):
                 return new_collection
         error_response(f"Недостаточно места в таблице")
 
+    release_author_roles = []
+    for role, names in authors_full_names.items():
+        if release_author_full_name in names:
+            release_author_roles.append(role)
+    
+    release_author_data = {
+        "license_or_alienation": False,
+        "payment_type": "release_author",
+        "payment_value": "",
+        "passport_type": release_author_passport_type,
+        "passport": release_author_passport
+    }
+    for role in release_author_roles:
+        if release_author_passport_type == 'ru':
+            specific_authors[role]['ru'] = assign_to_none(specific_authors[role]['ru'], release_author_data)
+        else:
+            specific_authors[role]['foreign'] = assign_to_none(specific_authors[role]['foreign'], release_author_data)
+
     for author in release_authors:
         author_fullname = author.get('full_name')
         author_data = author.get('data')
@@ -522,6 +544,13 @@ async def add_to_docs(id: str):
             public_paths.append(public_path)
         data_row[col_index] = ", ".join(public_paths) if public_paths else ""
 
+    payment_type_mapping = {
+        "royalty": "Роялти",
+        "sum": "Фикс. сумма",
+        "free": "Безвозмездно",
+        "other": "Другое",
+        "release_author": "Автор релиза"
+    }
 
     def add_ru_authors_sections(starting_index: int, specific_authors: list[dict]):
         for specific_author in specific_authors:
@@ -538,7 +567,8 @@ async def add_to_docs(id: str):
             list_to_add[6] = specific_author_passport.get('registration_address')
             list_to_add[7] = ""
             list_to_add[8] = 'Лицензия' if specific_author['license_or_alienation'] else 'Отчуждение'
-            list_to_add[9] = specific_author.get('payment_type') + ' ' + specific_author.get('payment_value')
+            payment_type_string = payment_type_mapping[specific_author.get('payment_type')]
+            list_to_add[9] = payment_type_string + ' ' + specific_author.get('payment_value')
             list_to_add[10] = ""
 
             for element in list_to_add:
@@ -562,7 +592,8 @@ async def add_to_docs(id: str):
             list_to_add[7] = specific_author_passport.get('registration_address')
             list_to_add[8] = ""
             list_to_add[9] = 'Лицензия' if specific_author['license_or_alienation'] else 'Отчуждение'
-            list_to_add[10] = specific_author.get('payment_type') + ' ' + specific_author.get('payment_value')
+            payment_type_string = payment_type_mapping[specific_author.get('payment_type')]
+            list_to_add[10] = payment_type_string + ' ' + specific_author.get('payment_value')
             list_to_add[11] = ""
 
             for element in list_to_add:
