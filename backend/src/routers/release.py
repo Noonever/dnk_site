@@ -1,3 +1,4 @@
+import datetime
 import enum
 import pprint
 from typing import Any, Union
@@ -252,8 +253,14 @@ async def add_to_docs(id: str):
 
     current_user_data = await get_user_data(username=request.get('username'))
 
-    user_releases = await get_processed_requests(username=request.get('username'))
-    latest_release = max(user_releases, key=lambda x: x['date']) if user_releases else None
+    user_releases_dicts = await get_processed_requests(username=request.get('username'))
+    def parse_date(date_string):
+    # Example format: "YYYY-MM-DD"
+        return datetime.strptime(date_string, "%Y-%m-%d")
+
+    # Assuming 'user_releases' is a list of dictionaries and each dictionary has a 'date' key.
+    # We'll use the parse_date function to convert the date string to a datetime object for comparison.
+    latest_release = max(user_releases_dicts, key=lambda x: parse_date(x['date'])) if user_releases_dicts else None
     latest_user_data = latest_release.get('user_data') if latest_release else None
 
     if current_user_data == latest_user_data:
@@ -559,7 +566,7 @@ async def add_to_docs(id: str):
 
     data_row[0] = release_date
     data_row[1] = release_performers
-    data_row[2] = len(release_performers.split(', '))
+    data_row[2] = len(authors_full_names.get('performers', []))
     data_row[3] = release_performers
     data_row[4] = "Да" if user_data_changed else "Нет"
     data_row[5] = release_name_type
