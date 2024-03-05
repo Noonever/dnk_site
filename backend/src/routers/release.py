@@ -447,9 +447,9 @@ async def add_to_docs(id: str):
             else:
                 tracks_enumed_durations.append(f"{i + 1}. -")
             
-            tracks_enumed_music_authors.append(f"{i + 1}. {', '.join(track_music_authors_names) if track_music_authors_names else '-'}") 
-            tracks_enumed_lyricists.append(f"{i + 1}. {', '.join(track_lyricists_names) if track_lyricists_names else '-'}")
-            tracks_enumed_phonogram_producers.append(f"{i + 1}. {', '.join(track_phonogram_producers_names) if track_phonogram_producers_names else '-'}")
+            tracks_enumed_music_authors.append(f"{i + 1}. {', '.join(track_music_authors_names) if len(track_music_authors_names) else '-'}") 
+            tracks_enumed_lyricists.append(f"{i + 1}. {', '.join(track_lyricists_names) if len(track_lyricists_names) else '-'}")
+            tracks_enumed_phonogram_producers.append(f"{i + 1}. {', '.join(track_phonogram_producers_names) if len(track_phonogram_producers_names) else '-'}")
 
         tracks_enumed_titles_string = "\n".join(tracks_enumed_titles)
         tracks_enumed_durations_string = "\n".join(tracks_enumed_durations)
