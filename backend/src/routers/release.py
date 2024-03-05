@@ -401,21 +401,43 @@ async def add_to_docs(id: str):
     elif release_type == 'new-music' or release_type == 'back-catalog':
 
         tracks: list = request_data.get('tracks')
-        track_titles = []
-        tracks_duration = 0
-        
-        for track in tracks:
-            authors_full_names['performers'].update(track.get('performers_names').split(', '))
-            authors_full_names['music_authors'].update(track.get('music_authors_names').split(', '))
-            authors_full_names['lyricists'].update(track.get('lyricists_names').split(', '))
-            authors_full_names['phonogram_producers'].update(track.get('phonogram_producers_names').split(', '))
-            track_titles.append(track.get('title'))
+        tracks_enumed_titles = []
+        tracks_enumed_durations = []
+        tracks_enumed_music_authors = []
+        tracks_enumed_lyricists = []
+        tracks_enumed_phonogram_producers = []
+
+        for i, track in enumerate(tracks):
+            track_performers_names = track.get('performers_names').split(', ')
+            track_music_authors_names = track.get('music_authors_names').split(', ')
+            track_lyricists_names = track.get('lyricists_names').split(', ')
+            track_phonogram_producers_names = track.get('phonogram_producers_names').split(', ')
+
+            authors_full_names['performers'].update(track_performers_names)
+            authors_full_names['music_authors'].update(track_music_authors_names)
+            authors_full_names['lyricists'].update(track_lyricists_names)
+            authors_full_names['phonogram_producers'].update(track_phonogram_producers_names)
+
+            tracks_enumed_titles.append(f"{i + 1}. {track.get('title')}")
+
             wav_file_id = track.get('wav_file_id')
             if wav_file_id != '':
                 track_duration = get_wav_duration(wav_file_id, raw=True)
                 if track_duration is None:
                     track_duration = 0
-                tracks_duration += track_duration
+                tracks_enumed_durations.append(f"{i + 1}. {track_duration}")
+            else:
+                tracks_enumed_durations.append(f"{i + 1}. -")
+            
+            tracks_enumed_music_authors.append(f"{i + 1}. {', '.join(track_music_authors_names)}")
+            tracks_enumed_lyricists.append(f"{i + 1}. {', '.join(track_lyricists_names)}")
+            tracks_enumed_phonogram_producers.append(f"{i + 1}. {', '.join(track_phonogram_producers_names)}")
+
+        tracks_enumed_titles_string = "\n".join(tracks_enumed_titles)
+        tracks_enumed_durations_string = "\n".join(tracks_enumed_durations)
+        tracks_enumed_music_authors_string = "\n".join(tracks_enumed_music_authors)
+        tracks_enumed_lyricists_string = "\n".join(tracks_enumed_lyricists)
+        tracks_enumed_phonogram_producers_string = "\n".join(tracks_enumed_phonogram_producers)
 
         if len(tracks) ==  1:
             release_name_type = 'Сингл'
@@ -436,21 +458,21 @@ async def add_to_docs(id: str):
             if release_type == 'new-music':
                 data_row[129] = request_data.get('performers')
                 data_row[130] = request_data.get('title')
-                data_row[131] = ", ".join(track_titles)
-                data_row[132] = ", ".join(authors_full_names['lyricists'])
-                data_row[133] = ", ".join(authors_full_names['music_authors'])
-                data_row[134] = ", ".join(authors_full_names['phonogram_producers'])
-                data_row[135] = tracks_duration
+                data_row[131] = tracks_enumed_titles_string
+                data_row[132] = tracks_enumed_lyricists_string
+                data_row[133] = tracks_enumed_music_authors_string
+                data_row[134] = tracks_enumed_phonogram_producers_string
+                data_row[135] = tracks_enumed_durations_string
                 data_row[136] = cover_file_public_link
                 data_row[137] = release_date
 
         if release_type == 'back-catalog':
             data_row[148] = request_data.get('performers')
-            data_row[149] = ", ".join(track_titles)
-            data_row[150] = ", ".join(authors_full_names['lyricists'])
-            data_row[151] = ", ".join(authors_full_names['music_authors'])
-            data_row[152] = ", ".join(authors_full_names['phonogram_producers'])
-            data_row[153] = tracks_duration
+            data_row[149] = tracks_enumed_titles_string
+            data_row[150] = tracks_enumed_lyricists_string
+            data_row[151] = tracks_enumed_music_authors_string
+            data_row[152] = tracks_enumed_phonogram_producers_string
+            data_row[153] = tracks_enumed_durations_string
             data_row[154] = cover_file_public_link
             data_row[155] = release_date 
 
@@ -526,7 +548,7 @@ async def add_to_docs(id: str):
 
     data_row[0] = release_date
     data_row[1] = release_performers
-    data_row[2] = len(release_authors)
+    data_row[2] = len(release_performers.split(', '))
     data_row[3] = release_performers
     data_row[4] = "" # TODO
     data_row[5] = release_name_type
