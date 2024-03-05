@@ -9,7 +9,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - backend-data:/app/src/data
+      - ./backend-src-data:/app/src/data
+      - ./backend-data:/app/data
 
   frontend:
     build:
@@ -22,4 +23,5 @@ services:
       - backend
 
 volumes:
+  backend-src-data:
   backend-data:
