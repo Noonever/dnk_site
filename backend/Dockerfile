@@ -2,8 +2,8 @@ FROM python:3.11-slim
 
 RUN apt update && apt upgrade -y
 
-WORKDIR /src
-COPY . /src
+WORKDIR /app
+COPY . .
 
 RUN apt install -y ffmpeg
 RUN pip install -r requirements.txt

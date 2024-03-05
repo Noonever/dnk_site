@@ -250,6 +250,17 @@ async def add_to_docs(id: str):
     if request is None:
         raise HTTPException(status_code=404, detail="Request not found")
 
+    current_user_data = await get_user_data(username=request.get('username'))
+
+    user_releases = await get_processed_requests(username=request.get('username'))
+    latest_release = max(user_releases, key=lambda x: x['date']) if user_releases else None
+    latest_user_data = latest_release.get('user_data') if latest_release else None
+
+    if current_user_data == latest_user_data:
+        user_data_changed = False
+    else:
+        user_data_changed = True
+    
     processed_request = await get_processed_request(id)
     if processed_request:
         cover_file_public_link = processed_request.get('data', {}).get('coverLink', "")
@@ -550,7 +561,7 @@ async def add_to_docs(id: str):
     data_row[1] = release_performers
     data_row[2] = len(release_performers.split(', '))
     data_row[3] = release_performers
-    data_row[4] = "" # TODO
+    data_row[4] = "Да" if user_data_changed else "Нет"
     data_row[5] = release_name_type
     
     data_row[7] = release_author.get('email')
