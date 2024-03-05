@@ -21,10 +21,9 @@ def get_wav_duration(file_id: str, raw: bool = False) -> str | int | None:
         if audio is not None and hasattr(audio, 'info') and hasattr(audio.info, 'length'):
             duration = audio.info.length
             logger.debug(f"Duration: {duration}, type: {type(duration)}")
-            formatted_duration = format_duration(duration)
             if raw:
                 return duration
-            return formatted_duration
+            return format_duration(duration)
     except Exception as e:
         logger.error(f"Error processing {file_path.name}: {e}")
         return None

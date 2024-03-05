@@ -272,7 +272,7 @@ async def add_to_docs(id: str):
     if processed_request:
         cover_file_public_link = processed_request.get('data', {}).get('coverLink', "")
     else:
-        cover_file_public_link = ""
+        cover_file_public_link = "Для подгрузки обложки необходимо добавить релиз в таблицу выгрузки"
 
     def error_response(error: str):
         raise HTTPException(status_code=400, detail=error)
@@ -440,16 +440,16 @@ async def add_to_docs(id: str):
 
             wav_file_id = track.get('wav_file_id')
             if wav_file_id != '':
-                track_duration = get_wav_duration(wav_file_id, raw=True)
+                track_duration = get_wav_duration(wav_file_id)
                 if track_duration is None:
                     track_duration = 0
                 tracks_enumed_durations.append(f"{i + 1}. {track_duration}")
             else:
                 tracks_enumed_durations.append(f"{i + 1}. -")
             
-            tracks_enumed_music_authors.append(f"{i + 1}. {', '.join(track_music_authors_names)}")
-            tracks_enumed_lyricists.append(f"{i + 1}. {', '.join(track_lyricists_names)}")
-            tracks_enumed_phonogram_producers.append(f"{i + 1}. {', '.join(track_phonogram_producers_names)}")
+            tracks_enumed_music_authors.append(f"{i + 1}. {', '.join(track_music_authors_names) if track_music_authors_names else "-"}") 
+            tracks_enumed_lyricists.append(f"{i + 1}. {', '.join(track_lyricists_names) if track_lyricists_names else '-'}")
+            tracks_enumed_phonogram_producers.append(f"{i + 1}. {', '.join(track_phonogram_producers_names) if track_phonogram_producers_names else '-'}")
 
         tracks_enumed_titles_string = "\n".join(tracks_enumed_titles)
         tracks_enumed_durations_string = "\n".join(tracks_enumed_durations)
@@ -567,7 +567,7 @@ async def add_to_docs(id: str):
     data_row[0] = release_date
     data_row[1] = release_performers
     data_row[2] = len(authors_full_names.get('performers', []))
-    data_row[3] = release_performers
+    data_row[3] = ", ".join(list(authors_full_names.get('performers')))
     data_row[4] = "Да" if user_data_changed else "Нет"
     data_row[5] = release_name_type
     
